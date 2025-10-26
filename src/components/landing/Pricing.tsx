@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import RazorpayButton from './RazorpayButton';
 
 const includedFeatures = [
     'Complete PDF Guide',
@@ -35,10 +36,8 @@ export default function Pricing() {
                     ))}
                 </ul>
             </CardContent>
-            <CardFooter>
-                <Button asChild size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 text-lg py-7 transition-transform hover:scale-105">
-                    <Link href="/success">Invest ₹50 In Yourself And Start Your Journey!</Link>
-                </Button>
+            <CardFooter className='justify-center'>
+               <RazorpayButton />
             </CardFooter>
         </Card>
       </div>
