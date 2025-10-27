@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, getDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
