@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Millionaire Mindset platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "referralCode": {
+          "type": "string",
+          "description": "Unique referral code for the user to share."
+        },
+        "referredBy": {
+          "type": "string",
+          "description": "The referral code of the user who referred this user."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "email",
+        "name"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a digital product offered on the Millionaire Mindset platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product (e.g., 'Success Pathway')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product."
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "URL of the downloadable product file.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "fileUrl"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a transaction made by a user to purchase a product.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N Transaction)"
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "Date and time of the transaction.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount paid in the transaction."
+        },
+        "paymentGatewayTransactionId": {
+          "type": "string",
+          "description": "Transaction ID provided by the payment gateway."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "productId",
+        "transactionDate",
+        "amount",
+        "paymentGatewayTransactionId"
+      ]
+    },
+    "Referral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Referral",
+      "type": "object",
+      "description": "Represents a referral relationship between two users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Referral entity."
+        },
+        "referrerId": {
+          "type": "string",
+          "description": "Reference to User who made the referral. (Relationship: User 1:N Referral as referrer)"
+        },
+        "referredUserId": {
+          "type": "string",
+          "description": "Reference to User who was referred. (Relationship: User 1:N Referral as referred)"
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "Reference to Transaction. (Relationship: Transaction 1:N Referral)"
+        },
+        "referralDate": {
+          "type": "string",
+          "description": "Date the referral was made",
+          "format": "date-time"
+        },
+        "commissionAmount": {
+          "type": "number",
+          "description": "The ammount of commission rewarded."
+        }
+      },
+      "required": [
+        "id",
+        "referrerId",
+        "referredUserId",
+        "referralDate",
+        "transactionId",
+        "commissionAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Uses path-based ownership: only the user (or admin roles) can access their profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores information about the products offered on the platform. Publicly readable, but only admins can create/update/delete.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction history for each user. Uses path-based ownership: only the user (or admin roles) can access their transaction history.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/referrals/{referralId}",
+        "definition": {
+          "entityName": "Referral",
+          "schema": {
+            "$ref": "#/backend/entities/Referral"
+          },
+          "description": "Stores referral information. Includes 'referrerId' and 'referredUserId' for authorization independence, allowing rules to efficiently determine access based on user roles.",
+          "params": [
+            {
+              "name": "referralId",
+              "description": "The unique identifier for the referral."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Millionaire Mindset platform, focusing on user management, product sales, referral programs, and AI-driven support for subscribers. The structure emphasizes authorization independence through denormalization, enabling secure and scalable operations. It uses Structural Segregation to maintain a homogeneous security posture within collections. Path-based ownership is employed for private user data, while the Membership Map pattern is used for collaborative access where applicable. This approach ensures clarity, predictability, and robust security rules, simplifying debugging and maintenance.\n\n**Authorization Independence:** The design avoids hierarchical authorization dependencies (`get()`). For instance, access to a user's transactions (`/users/{userId}/transactions/{transactionId}`) is directly based on the `userId` path, and referral information (`/referrals/{referralId}`) includes denormalized user IDs to avoid needing to fetch user documents for authorization.\n\n**QAPs Support:** The structure supports secure `list` operations by segregating data based on access needs. User-specific data is stored under `/users/{userId}`, allowing rules to easily filter based on `request.auth.uid`. Referral data is stored in a top-level collection, `/referrals`, but includes `referrerId` and `referredUserId` for filtering and authorization purposes, ensuring users can only access referral data related to them."
+  }
+}

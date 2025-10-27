@@ -35,8 +35,10 @@ const RazorpayButton: React.FC = () => {
 
     try {
       // 1. Create Transaction
-      const transactionId = doc(collection(firestore, `users/${user.uid}/transactions`)).id;
-      const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionId);
+      const transactionsCollectionRef = collection(firestore, 'users', user.uid, 'transactions');
+      const transactionId = doc(transactionsCollectionRef).id;
+      const transactionRef = doc(transactionsCollectionRef, transactionId);
+
       await setDoc(transactionRef, {
         id: transactionId,
         userId: user.uid,
@@ -81,7 +83,6 @@ const RazorpayButton: React.FC = () => {
         }
       }
 
-
       router.push('/success');
     } catch (error: any) {
       console.error('Error processing payment:', error);
@@ -111,12 +112,12 @@ const RazorpayButton: React.FC = () => {
     }
 
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_eJmLrDXIqYRmzz', // Enter the Key ID generated from the Dashboard
-      amount: '5000', // Amount is in currency subunits. Default currency is INR. Hence, 5000 paise = INR 50.
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_eJmLrDXIqYRmzz',
+      amount: '5000', 
       currency: 'INR',
       name: 'Millionaire Mindset',
       description: 'Success Pathway Guide',
-      image: '/logo.png', //TODO
+      image: '/logo.png',
       handler: handlePaymentSuccess,
       prefill: {
         name: user.displayName || 'Valued Customer',

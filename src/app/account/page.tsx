@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { useDoc, useCollection } from '@/firebase/firestore/use-doc';
 import Header from '@/components/landing/Header';
@@ -68,7 +68,7 @@ function AIAssistantCard({ hasPaid }: { hasPaid: boolean }) {
             : 'Purchase the guide to unlock your personal AI assistant.'}
         </p>
         <Button asChild disabled={!hasPaid}>
-          <Link href={hasPaid ? '/discover' : '#'} aria-disabled={!hasPaid}>
+          <Link href={hasPaid ? '/discover' : '#'} aria-disabled={!hasPaid} tabIndex={hasPaid ? undefined : -1}>
             { !hasPaid && <Lock className="mr-2 h-4 w-4" /> }
             Launch Assistant
           </Link>
@@ -84,13 +84,13 @@ export default function AccountPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  const userDocRef = useMemo(() => {
-    if (!user) return null;
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
   
-  const transactionsCollectionRef = useMemo(() => {
-    if (!user) return null;
+  const transactionsCollectionRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'transactions');
   }, [user, firestore]);
 
@@ -105,7 +105,7 @@ export default function AccountPage() {
 
   const isLoading = isUserLoading || isUserDataLoading || isTransactionsLoading;
   
-  const hasPaid = transactions && transactions.length > 0;
+  const hasPaid = transactions ? transactions.length > 0 : false;
 
   if (isLoading || !user) {
     return (
