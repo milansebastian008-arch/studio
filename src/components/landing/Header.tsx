@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { Menu, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
@@ -15,6 +18,74 @@ const navLinks = [
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
+
+  const AuthButtons = () => {
+    if (isUserLoading) {
+      return null; // Or a loading spinner
+    }
+
+    if (user) {
+      return (
+        <>
+          <Button asChild variant="ghost">
+            <Link href="/account">Dashboard</Link>
+          </Button>
+          <Button onClick={handleLogout} variant="outline">
+            Log Out
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Button asChild variant="ghost">
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <Link href="/signup">Sign Up</Link>
+        </Button>
+      </>
+    );
+  };
+  
+  const MobileAuthButtons = () => {
+    if (isUserLoading) {
+      return null; // Or a loading spinner
+    }
+
+    if (user) {
+      return (
+        <div className='flex flex-col gap-4'>
+           <Button asChild className="w-full">
+            <Link href="/account" onClick={() => setIsOpen(false)}>Dashboard</Link>
+          </Button>
+          <Button onClick={() => {handleLogout(); setIsOpen(false);}} variant="outline" className='w-full'>
+            Log Out
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className='flex flex-col gap-4'>
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
+        </Button>
+        <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+          <Link href="/signup" onClick={() => setIsOpen(false)}>Sign Up</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -36,12 +107,13 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-            <Button asChild className="hidden md:inline-flex bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link href="#pricing">Get Started</Link>
-            </Button>
+        <div className="hidden md:flex items-center gap-2">
+          <AuthButtons />
+        </div>
+
+        <div className="flex items-center gap-2 md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
-                <SheetTrigger asChild className="md:hidden">
+                <SheetTrigger asChild>
                     <Button variant="outline" size="icon">
                     <Menu className="h-6 w-6" />
                     <span className="sr-only">Open menu</span>
@@ -65,9 +137,7 @@ export default function Header() {
                             </Link>
                         ))}
                         </nav>
-                         <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                            <Link href="#pricing" onClick={() => setIsOpen(false)}>Get Started</Link>
-                        </Button>
+                         <MobileAuthButtons />
                     </div>
                 </SheetContent>
             </Sheet>
