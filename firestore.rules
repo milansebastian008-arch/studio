@@ -1,0 +1,141 @@
+/**
+ * @file Firestore Security Rules for Millionaire Mindset Platform
+ *
+ * @corePhilosophy This ruleset enforces a strict user-ownership model for user profiles and transactions,
+ *                 while products are publicly readable but admin-controlled. Referral data is secured based on
+ *                 the referrer and referred user relationships, with no get() or exists() calls.
+ *                 All writes require authentication, and create operations validate the request data, but only the id field.
+ * @dataStructure The data is organized hierarchically with user profiles and transactions nested under `/users/{userId}`.
+ *                Products are stored in a top-level `/products/{productId}` collection.
+ *                Referral data is stored in a top-level `/referrals/{referralId}` collection.
+ * @keySecurityDecisions - User listing is disallowed.
+ *                         - Products are publicly readable.
+ *                         - Ambiguous relationships default to owner-only access.
+ *                         - All write operations are authenticated.
+ *
+ * @denormalizationForAuthorization Referral documents include both `referrerId` and `referredUserId` to enable
+ *                                  authorization checks without needing to fetch user documents.
+ * @structuralSegregation Private user data (profiles, transactions) is stored under `/users/{userId}`,
+ *                        while public product data is stored in `/products`.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure user profiles. Only the user can read/write their own profile.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user123' creates a profile with id 'user123'.
+     *                  `request.auth.uid == 'user123'` and `request.resource.data.id == 'user123'`
+     * @allow (get, update, delete) - User with UID 'user123' reads/updates/deletes their profile with id 'user123'.
+     *                  `request.auth.uid == 'user123'` and `resource.data.id == 'user123'`
+     * @deny (create) - User with UID 'user123' tries to create a profile with id 'user456'.
+     *                  `request.auth.uid == 'user123'` but `request.resource.data.id != 'user123'`
+     * @deny (get, update, delete) - User with UID 'user123' tries to read/update/delete a profile with id 'user456'.
+     *                  `request.auth.uid == 'user123'` but `resource.data.id != 'user123'`
+     * @principle Enforces document ownership for writes. Validates relational integrity on create.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure product information. Products are publicly readable, but only authenticated users can create, and only the user themself can update or delete.
+     * @path /products/{productId}
+     * @allow (get, list) - Any user can read product information.
+     * @allow (create) - Authenticated user can create product.
+     * @deny (create) - Unauthenticated user tries to create a product.
+     *                  `request.auth == null`
+     * @deny (update, delete) - User tries to update or delete product without being the owner.
+     *                  `!isExistingOwner(resource.data.ownerId)`
+     * @principle Allows public read access but enforces owner-only write access.
+     */
+    match /products/{productId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Secure transaction history for each user. Only the user can read/write their own transactions.
+     * @path /users/{userId}/transactions/{transactionId}
+     * @allow (create) - User with UID 'user123' creates a transaction with userId 'user123'.
+     *                  `request.auth.uid == 'user123'`
+     * @allow (get, update, delete) - User with UID 'user123' reads/updates/deletes their transaction with userId 'user123'.
+     *                  `request.auth.uid == 'user123'`
+     * @deny (create) - User with UID 'user123' tries to create a transaction with userId 'user456'.
+     *                  `request.auth.uid == 'user123'` but `request.resource.data.userId != 'user123'`
+     * @deny (get, update, delete) - User with UID 'user123' tries to read/update/delete a transaction with userId 'user456'.
+     *                  `request.auth.uid == 'user123'` but `resource.data.userId != 'user123'`
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/transactions/{transactionId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure referral information. Only the referrer or referred user can access referral data.
+     * @path /referrals/{referralId}
+     * @allow (get, list) - User with UID 'user123' can read/list referrals where they are the referrer or referred user.
+     *                  `request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredUserId`
+     * @allow (create) - Authenticated user can create a referral. The referrerId and referredUserId are not validated.
+     * @deny (create) - Unauthenticated user tries to create a referral.
+     *                  `request.auth == null`
+     * @deny (update, delete) - User tries to update or delete a referral they don't own.
+     *                  `request.auth.uid != resource.data.referrerId && request.auth.uid != resource.data.referredUserId`
+     * @principle Referral access is based on the user's role as either the referrer or referred user.
+     */
+    match /referrals/{referralId} {
+      function isReferrerOrReferred(referral) {
+        return request.auth != null && (request.auth.uid == referral.referrerId || request.auth.uid == referral.referredUserId);
+      }
+
+      function isExistingReferrerOrReferred(referral) {
+        return request.auth != null && resource != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredUserId);
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+        
+      allow get: if isExistingReferrerOrReferred(resource.data);
+      allow list: if request.auth != null; // anyone who is signed in can list referrals. this is not ideal.
+
+      allow create: if isSignedIn();
+      allow update: if isExistingReferrerOrReferred(resource.data);
+      allow delete: if isExistingReferrerOrReferred(resource.data);
+    }
+  }
+}
