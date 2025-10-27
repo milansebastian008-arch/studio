@@ -32,4 +32,5 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Forcing a refresh
 export default nextConfig;
