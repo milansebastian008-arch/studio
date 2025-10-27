@@ -31,11 +31,11 @@ import { Label } from "@/components/ui/label";
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
   
-  // Use a relative path for the referral link to avoid workstation permission issues.
+  // Use a relative path for the referral link to avoid hydration errors with window.location.
   const referralLink = `/signup?ref=${referralCode}`;
 
   const handleCopy = () => {
-    // To copy the full link, we need the origin. We construct it here for clipboard only.
+    // Construct the full link only on the client-side when the button is clicked.
     const fullLink = `${window.location.origin}${referralLink}`;
     navigator.clipboard.writeText(fullLink);
     toast({
@@ -272,6 +272,7 @@ export default function AccountPage() {
 
   const handleWithdraw = async (paymentDetails: string, amount: number) => {
     if (!user || !firestore) return;
+    const totalCommission = referrals ? referrals.reduce((acc, referral) => acc + (referral.commissionAmount || 0), 0) : 0;
 
     try {
       const withdrawalRequestsRef = collection(firestore, 'withdrawalRequests');
