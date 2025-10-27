@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AccountPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } from useUser();
   const router = useRouter();
 
   useEffect(() => {

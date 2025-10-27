@@ -27,7 +27,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2 }.
+import { get } from 'http';
 
 const formSchema = z.object({
   userInfo: z.string().min(50, "Please provide at least 50 characters about your financial situation and goals."),
