@@ -3,15 +3,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { useDoc } from '@/firebase/firestore/use-doc';
+import { collection, doc } from 'firebase/firestore';
+import { useDoc, useCollection } from '@/firebase/firestore/use-doc';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy } from 'lucide-react';
+import { Copy, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -20,7 +20,6 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
   const [origin, setOrigin] = useState('');
 
   useEffect(() => {
-    // This ensures window is available before trying to access it
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
     }
@@ -55,6 +54,31 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
   );
 }
 
+function AIAssistantCard({ hasPaid }: { hasPaid: boolean }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Wealth Assistant</CardTitle>
+        <CardDescription>Your personal guide to financial freedom.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="mb-4">
+          {hasPaid
+            ? 'Get personalized advice and strategies to kickstart your journey.'
+            : 'Purchase the guide to unlock your personal AI assistant.'}
+        </p>
+        <Button asChild disabled={!hasPaid}>
+          <Link href={hasPaid ? '/discover' : '#'} aria-disabled={!hasPaid}>
+            { !hasPaid && <Lock className="mr-2 h-4 w-4" /> }
+            Launch Assistant
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -65,7 +89,13 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
   
+  const transactionsCollectionRef = useMemo(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'transactions');
+  }, [user, firestore]);
+
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsCollectionRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -73,7 +103,9 @@ export default function AccountPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const isLoading = isUserLoading || isUserDataLoading;
+  const isLoading = isUserLoading || isUserDataLoading || isTransactionsLoading;
+  
+  const hasPaid = transactions && transactions.length > 0;
 
   if (isLoading || !user) {
     return (
@@ -103,18 +135,7 @@ export default function AccountPage() {
           <p className="text-muted-foreground">This is your account dashboard.</p>
           
           <div className="grid gap-8 pt-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Wealth Assistant</CardTitle>
-                <CardDescription>Your personal guide to financial freedom.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">Get personalized advice and strategies to kickstart your journey.</p>
-                <Button asChild>
-                    <Link href="/discover">Launch Assistant</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <AIAssistantCard hasPaid={hasPaid} />
             {userData?.referralCode && <ReferralCard referralCode={userData.referralCode} />}
           </div>
 

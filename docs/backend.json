@@ -10,6 +10,10 @@
           "type": "string",
           "description": "Unique identifier for the User entity."
         },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
         "email": {
           "type": "string",
           "description": "Email address of the user.",

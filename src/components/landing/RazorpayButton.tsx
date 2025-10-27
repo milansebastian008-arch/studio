@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, getDocs, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, getDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '../ui/button';
 
 const RazorpayButton: React.FC = () => {
   const { user } = useUser();
@@ -34,7 +35,7 @@ const RazorpayButton: React.FC = () => {
 
     try {
       // 1. Create Transaction
-      const transactionId = doc(collection(firestore, 'transactions')).id;
+      const transactionId = doc(collection(firestore, `users/${user.uid}/transactions`)).id;
       const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionId);
       await setDoc(transactionRef, {
         id: transactionId,
@@ -47,34 +48,39 @@ const RazorpayButton: React.FC = () => {
 
       // 2. Handle Referral
       const userDocRef = doc(firestore, 'users', user.uid);
-      const userDoc = await (await fetch(userDocRef.path)).json(); // Simplified fetch for demo
-      const referredByCode = userDoc.fields?.referredBy?.stringValue;
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const referredByCode = userData.referredBy;
 
-      if (referredByCode) {
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('referralCode', '==', referredByCode));
-        const querySnapshot = await getDocs(q);
+        if (referredByCode) {
+          const usersRef = collection(firestore, 'users');
+          const q = query(usersRef, where('referralCode', '==', referredByCode));
+          const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-          const referrerDoc = querySnapshot.docs[0];
-          const referrerId = referrerDoc.id;
+          if (!querySnapshot.empty) {
+            const referrerDoc = querySnapshot.docs[0];
+            const referrerId = referrerDoc.id;
 
-          const referralRef = collection(firestore, 'referrals');
-          await addDoc(referralRef, {
-            referrerId: referrerId,
-            referredUserId: user.uid,
-            transactionId: transactionId,
-            referralDate: serverTimestamp(),
-            commissionAmount: 10,
-          });
+            const referralRef = collection(firestore, 'referrals');
+            await addDoc(referralRef, {
+              referrerId: referrerId,
+              referredUserId: user.uid,
+              transactionId: transactionId,
+              referralDate: serverTimestamp(),
+              commissionAmount: 10,
+            });
 
-          console.log(`Commission of ₹10 awarded to user ${referrerId}`);
-          toast({
-            title: 'Referral Success!',
-            description: `Your referrer has been awarded their commission!`,
-          });
+            console.log(`Commission of ₹10 awarded to user ${referrerId}`);
+            toast({
+              title: 'Referral Success!',
+              description: `Your referrer has been awarded their commission!`,
+            });
+          }
         }
       }
+
 
       router.push('/success');
     } catch (error: any) {
@@ -126,24 +132,16 @@ const RazorpayButton: React.FC = () => {
 
   }, [user, handlePaymentSuccess, router, toast]);
 
-  // This handles the static button from your original code.
-  // We'll replace this with a dynamic button.
-  useEffect(() => {
-    const form = document.getElementById('razorpay-form');
-    if (form?.hasChildNodes()) {
-        form.innerHTML = '';
-    }
-    const button = document.createElement('button');
-    button.textContent = 'Invest ₹50 Now';
-    button.className = 'bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:scale-105 h-11 rounded-md px-8 w-full sm:w-auto';
-    button.onclick = (e) => {
-        e.preventDefault();
-        displayRazorpay();
-    };
-    form?.appendChild(button);
-  }, [displayRazorpay]);
 
-  return <form id="razorpay-form"></form>;
+  return (
+      <Button
+        onClick={displayRazorpay}
+        className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:scale-105"
+        size="lg"
+      >
+        Invest ₹50 Now
+      </Button>
+  );
 };
 
 export default RazorpayButton;
