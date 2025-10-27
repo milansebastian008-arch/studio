@@ -19,18 +19,14 @@ import { format } from 'date-fns';
 
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
-  const [origin, setOrigin] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOrigin(window.location.origin);
-    }
-  }, []);
-
-  const referralLink = `${origin}/signup?ref=${referralCode}`;
+  
+  // Use a relative path for the referral link to avoid workstation permission issues.
+  const referralLink = `/signup?ref=${referralCode}`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(referralLink);
+    // To copy the full link, we need the origin. We construct it here for clipboard only.
+    const fullLink = `${window.location.origin}${referralLink}`;
+    navigator.clipboard.writeText(fullLink);
     toast({
       title: 'Copied!',
       description: 'Referral link copied to clipboard.',
