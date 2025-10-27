@@ -1,16 +1,71 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useDoc } from '@/firebase/firestore/use-doc';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+
+function ReferralCard({ referralCode }: { referralCode: string }) {
+  const { toast } = useToast();
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    // This ensures window is available before trying to access it
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
+  const referralLink = `${origin}/signup?ref=${referralCode}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(referralLink);
+    toast({
+      title: 'Copied!',
+      description: 'Referral link copied to clipboard.',
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Referral Program</CardTitle>
+        <CardDescription>Earn by sharing with your friends. You get ₹10 for every friend who signs up!</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">Share your unique referral link:</p>
+        <div className="flex items-center space-x-2">
+          <Input value={referralLink} readOnly />
+          <Button variant="outline" size="icon" onClick={handleCopy}>
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AccountPage() {
-  const { user, isUserLoading } from useUser();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemo(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -18,22 +73,24 @@ export default function AccountPage() {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  const isLoading = isUserLoading || isUserDataLoading;
+
+  if (isLoading || !user) {
     return (
-        <div className="flex min-h-screen flex-col bg-background">
-            <Header />
-            <main className="flex-1 container py-10">
-                <div className="space-y-4">
-                    <Skeleton className="h-8 w-1/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <div className="grid gap-8 pt-6 md:grid-cols-2">
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                    </div>
-                </div>
-            </main>
-            <Footer />
-        </div>
+      <div className="flex min-h-screen flex-col bg-background">
+        <Header />
+        <main className="flex-1 container py-10">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="grid gap-8 pt-6 md:grid-cols-2">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
     );
   }
 
@@ -47,23 +104,18 @@ export default function AccountPage() {
           
           <div className="grid gap-8 pt-6 md:grid-cols-2">
             <Card>
-                <CardHeader>
-                    <CardTitle>AI Wealth Assistant</CardTitle>
-                    <CardDescription>Your personal guide to financial freedom.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Coming soon! Get personalized advice and strategies.</p>
-                </CardContent>
+              <CardHeader>
+                <CardTitle>AI Wealth Assistant</CardTitle>
+                <CardDescription>Your personal guide to financial freedom.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4">Get personalized advice and strategies to kickstart your journey.</p>
+                <Button asChild>
+                    <Link href="/discover">Launch Assistant</Link>
+                </Button>
+              </CardContent>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Referral Program</CardTitle>
-                    <CardDescription>Earn by sharing with your friends.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Your referral dashboard is coming soon!</p>
-                </CardContent>
-            </Card>
+            {userData?.referralCode && <ReferralCard referralCode={userData.referralCode} />}
           </div>
 
         </div>
