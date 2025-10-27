@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,8 +29,10 @@ export default function SignupPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
+  const refCode = searchParams.get('ref');
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -41,6 +43,15 @@ export default function SignupPage() {
     },
   });
 
+  useEffect(() => {
+    if (refCode) {
+      toast({
+        title: 'Referral Applied!',
+        description: `You've been referred!`,
+      });
+    }
+  }, [refCode, toast]);
+
   const onSubmit = async (data: FormSchema) => {
     setIsLoading(true);
     try {
@@ -50,13 +61,19 @@ export default function SignupPage() {
       await updateProfile(user, { displayName: data.name });
 
       const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      await setDoc(doc(firestore, 'users', user.uid), {
+      
+      const userData: any = {
         id: user.uid,
         name: data.name,
         email: data.email,
         referralCode: referralCode,
-      });
+      };
+
+      if (refCode) {
+        userData.referredBy = refCode;
+      }
+
+      await setDoc(doc(firestore, 'users', user.uid), userData);
 
       toast({
         title: 'Account Created',

@@ -22,6 +22,10 @@
         "referralCode": {
           "type": "string",
           "description": "Unique referral code for the user to share."
+        },
+        "referredBy": {
+          "type": "string",
+          "description": "The referral code of the user who referred this user."
         }
       },
       "required": [
