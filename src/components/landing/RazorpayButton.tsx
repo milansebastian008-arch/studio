@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, getDocs, getDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
@@ -100,6 +100,7 @@ const RazorpayButton: React.FC = () => {
         title: 'Please log in',
         description: 'You need to be logged in to make a purchase.',
       });
+      sessionStorage.setItem('redirectAfterLogin', '/#pricing');
       router.push('/login');
       return;
     }

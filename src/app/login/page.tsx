@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -45,7 +45,9 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: "You've been successfully logged in.",
       });
-      router.push('/account');
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
+      sessionStorage.removeItem('redirectAfterLogin');
+      router.push(redirectUrl);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -56,14 +58,17 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+        const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.push(redirectUrl);
+    }
+  }, [user, isUserLoading, router]);
   
-  if (isUserLoading) {
+  if (isUserLoading || user) {
       return <div>Loading...</div>
-  }
-  
-  if (user) {
-      router.push('/account');
-      return null;
   }
 
   return (

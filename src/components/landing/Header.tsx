@@ -10,9 +10,9 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
 const navLinks = [
-  { href: '#features', label: 'Features' },
-  { href: '#pricing', label: 'Pricing' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '/#features', label: 'Features' },
+  { href: '/#pricing', label: 'Pricing' },
+  { href: '/#faq', label: 'FAQ' },
   { href: '/discover', label: 'Discover AI' },
 ];
 
