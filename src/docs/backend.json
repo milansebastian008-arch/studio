@@ -8,11 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the User entity, matches Firebase Auth UID."
         },
         "email": {
           "type": "string",
@@ -34,9 +30,9 @@
       },
       "required": [
         "id",
-        "userId",
         "email",
-        "name"
+        "name",
+        "referralCode"
       ]
     },
     "Product": {
@@ -145,7 +141,7 @@
         },
         "commissionAmount": {
           "type": "number",
-          "description": "The ammount of commission rewarded."
+          "description": "The amount of commission rewarded."
         }
       },
       "required": [
@@ -156,6 +152,41 @@
         "transactionId",
         "commissionAmount"
       ]
+    },
+    "WithdrawalRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WithdrawalRequest",
+      "type": "object",
+      "description": "Represents a user's request to withdraw their referral earnings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the withdrawal request."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user requesting the withdrawal."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount requested for withdrawal."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "processed", "rejected"],
+          "description": "The status of the withdrawal request."
+        },
+        "requestDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the request was made."
+        },
+        "paymentDetails": {
+          "type": "string",
+          "description": "User's payment details for receiving funds (e.g., UPI ID)."
+        }
+      },
+      "required": ["id", "userId", "amount", "status", "requestDate", "paymentDetails"]
     }
   },
   "auth": {
@@ -230,6 +261,22 @@
             {
               "name": "referralId",
               "description": "The unique identifier for the referral."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/withdrawalRequests/{requestId}",
+        "definition": {
+          "entityName": "WithdrawalRequest",
+          "schema": {
+            "$ref": "#/backend/entities/WithdrawalRequest"
+          },
+          "description": "Stores user requests for withdrawing referral earnings. Only the user can create their own request, and only an admin can read/update it.",
+          "params": [
+            {
+              "name": "requestId",
+              "description": "The unique identifier for the withdrawal request."
             }
           ]
         }

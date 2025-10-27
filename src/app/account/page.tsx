@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useDoc, useCollection } from '@/firebase';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
@@ -16,6 +16,17 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
@@ -75,7 +86,94 @@ function AIAssistantCard({ hasPaid }: { hasPaid: boolean }) {
   );
 }
 
-function ReferralDashboard({ referrals, onWithdraw }: { referrals: any[], onWithdraw: () => void }) {
+function WithdrawalDialog({ onWithdraw, totalCommission }: { onWithdraw: (details: string, amount: number) => void, totalCommission: number }) {
+    const [paymentDetails, setPaymentDetails] = useState('');
+    const [amount, setAmount] = useState(0);
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+  
+    const handleWithdrawClick = () => {
+        if (amount < 100) {
+            toast({
+              variant: 'destructive',
+              title: "Withdrawal Failed",
+              description: "Minimum withdrawal amount is ₹100.",
+            });
+            return;
+        }
+        if (amount > totalCommission) {
+            toast({
+              variant: 'destructive',
+              title: "Withdrawal Failed",
+              description: "Requested amount exceeds your available balance.",
+            });
+            return;
+        }
+        if (!paymentDetails) {
+            toast({
+                variant: 'destructive',
+                title: "Withdrawal Failed",
+                description: "Please provide your UPI ID.",
+            });
+            return;
+        }
+        onWithdraw(paymentDetails, amount);
+        setOpen(false); // Close the dialog
+    };
+  
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button disabled={totalCommission <= 0}>
+            <IndianRupee className="mr-2 h-4 w-4" /> Withdraw Earnings
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Request Withdrawal</DialogTitle>
+            <DialogDescription>
+              Enter your UPI ID and the amount to withdraw. Minimum withdrawal is ₹100.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="upi-id" className="text-right">
+                UPI ID
+              </Label>
+              <Input
+                id="upi-id"
+                value={paymentDetails}
+                onChange={(e) => setPaymentDetails(e.target.value)}
+                className="col-span-3"
+                placeholder="yourname@bank"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="amount" className="text-right">
+                Amount (₹)
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="col-span-3"
+                placeholder="100"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleWithdrawClick}>Submit Request</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+function ReferralDashboard({ referrals, onWithdraw }: { referrals: any[], onWithdraw: (details: string, amount: number) => void }) {
   const totalCommission = referrals.reduce((acc, referral) => acc + (referral.commissionAmount || 0), 0);
   const totalReferrals = referrals.length;
 
@@ -100,9 +198,7 @@ function ReferralDashboard({ referrals, onWithdraw }: { referrals: any[], onWith
         </Card>
          <Card className='text-center bg-transparent border-0 shadow-none md:border md:shadow-sm'>
              <CardHeader>
-                <Button onClick={onWithdraw} disabled={totalCommission <= 0}>
-                    <IndianRupee className="mr-2 h-4 w-4" /> Withdraw Earnings
-                </Button>
+                <WithdrawalDialog onWithdraw={onWithdraw} totalCommission={totalCommission} />
                 <CardDescription className='pt-2'>Minimum withdrawal: ₹100</CardDescription>
              </CardHeader>
         </Card>
@@ -174,12 +270,29 @@ export default function AccountPage() {
   
   const hasPaid = transactions ? transactions.length > 0 : false;
 
-  const handleWithdraw = () => {
-    // This is a placeholder for a future, more secure withdrawal system.
-    toast({
-        title: "Withdrawal Request",
-        description: "Withdrawal functionality is coming soon! Stay tuned.",
-    });
+  const handleWithdraw = async (paymentDetails: string, amount: number) => {
+    if (!user || !firestore) return;
+
+    try {
+      const withdrawalRequestsRef = collection(firestore, 'withdrawalRequests');
+      await addDoc(withdrawalRequestsRef, {
+        userId: user.uid,
+        amount,
+        status: 'pending',
+        requestDate: serverTimestamp(),
+        paymentDetails,
+      });
+      toast({
+        title: "Withdrawal Request Submitted",
+        description: "Your request has been submitted and will be processed soon.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: "Request Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    }
   };
 
   if (isLoading || !user) {
