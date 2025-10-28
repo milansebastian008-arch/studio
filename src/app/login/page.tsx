@@ -38,7 +38,7 @@ export default function LoginPage() {
     },
   });
 
-  // Effect to handle redirection *after* client-side hydration
+  // Effect to handle redirection *after* client-side hydration and auth state is resolved.
   useEffect(() => {
     if (!isUserLoading && user) {
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
@@ -49,6 +49,11 @@ export default function LoginPage() {
 
   const onSubmit = async (data: FormSchema) => {
     setIsLoading(true);
+    if (!auth) {
+        toast({ variant: 'destructive', title: 'Login Failed', description: 'Authentication service is not available.' });
+        setIsLoading(false);
+        return;
+    }
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({
@@ -67,8 +72,8 @@ export default function LoginPage() {
     }
   };
   
-  // Render loading state if Firebase auth is still initializing
-  // This helps prevent a flash of the login form for an already logged-in user.
+  // Render a loading state until Firebase auth is fully initialized.
+  // This is the key to preventing the hydration error.
   if (isUserLoading) {
       return (
         <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
@@ -77,12 +82,13 @@ export default function LoginPage() {
       );
   }
   
-  // If a user object exists, the useEffect will handle the redirect.
-  // Rendering null or a loading indicator prevents the form from flashing.
+  // If a user object exists after loading, the useEffect will handle the redirect.
+  // Rendering null prevents the form from flashing.
   if (user) {
     return null;
   }
 
+  // Only render the form if not loading and no user is present.
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
