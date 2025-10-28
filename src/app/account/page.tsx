@@ -30,15 +30,13 @@ import { Label } from "@/components/ui/label";
 
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
-  const [origin, setOrigin] = useState('');
+  const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
     // This ensures window.location.origin is only accessed on the client-side
     // after the component has mounted, preventing hydration mismatches.
-    setOrigin(window.location.origin);
-  }, []);
-
-  const referralLink = origin ? `${origin}/signup?ref=${referralCode}` : '';
+    setReferralLink(`${window.location.origin}/signup?ref=${referralCode}`);
+  }, [referralCode]);
 
   const handleCopy = () => {
     if (referralLink) {
@@ -302,7 +300,7 @@ export default function AccountPage() {
           
           <div className="grid gap-8 pt-6 md:grid-cols-2">
             {userData?.referralCode && <ReferralCard referralCode={userData.referralCode} />}
-            {referrals && <ReferralDashboard referrals={referrals} onWithdraw={handleWithdraw} />}
+            {referrals && <ReferralDashboard referrals={referrals} onWithdraw={onWithdraw} />}
           </div>
 
         </div>
