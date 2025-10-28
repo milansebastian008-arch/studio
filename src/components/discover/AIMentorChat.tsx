@@ -169,7 +169,7 @@ export function AIMentorChat() {
           <Input name="userMessage" placeholder="Type your message..." value={userInput} onChange={(e) => setUserInput(e.target.value)} autoComplete='off' />
           <input type="hidden" name="userId" value={user?.uid} />
           <input type="hidden" name="currentStage" value={state.currentStage} />
-          <input type="hidden" name="userProfile" value={JSON.stringify(userProfile)} />
+          <input type="hidden" name="userProfile" value={JSON.stringify(userProfile || {})} />
           <SubmitButton />
         </form>
       </CardFooter>
@@ -183,5 +183,3 @@ export function AIMentorChat() {
     </Card>
   );
 }
-
-    

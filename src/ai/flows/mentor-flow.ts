@@ -48,8 +48,7 @@ const mentorAIFlow = ai.defineFlow(
     const basePrompt = `You are a friendly, motivational AI mentor named 'Mindy'. Your goal is to help users earn online using AI tools.
 Your tone is encouraging, witty, and positive. Never give financial or legal advice.
 Keep your responses concise and always end with a clear question or next step.
-Current User: ${userProfile.name}
-User's Profile Data: ${JSON.stringify(userProfile)}
+The user's name is: ${userProfile.name}.
 `;
 
     // Stage-specific logic
@@ -103,7 +102,7 @@ User's Profile Data: ${JSON.stringify(userProfile)}
             'Other': 'General content creation with AI tools.'
         };
 
-        const primaryInterest = (userProfile.interest || 'Writing').split(',')[0].trim();
+        const primaryInterest = (userProfile.interest || interestOutput || 'Writing').split(',')[0].trim();
         const recommendedPath = incomePaths[primaryInterest] || incomePaths['Other'];
 
         return {
@@ -116,8 +115,7 @@ User's Profile Data: ${JSON.stringify(userProfile)}
       case 'PATH_SELECTION': {
          const { output } = await ai.generate({
             model: 'googleai/gemini-pro',
-            prompt: `${basePrompt}
-The user is confirming their chosen path. Their message is: "${userMessage}".
+            prompt: `${basePrompt}The user is confirming their chosen path. Their message is: "${userMessage}".
 Analyze if their message is a confirmation (e.g., "yes", "sounds good", "ok", "let's do it").
 If they confirm, respond with an enthusiastic "Alright, let's do this! Generating your 7-day plan now...".
 If they decline or suggest something else, respond with "No problem! What would you prefer to focus on instead?".`,
@@ -155,8 +153,7 @@ If they decline or suggest something else, respond with "No problem! What would 
       case 'PROGRESS_UPDATE': {
         const { output } = await ai.generate({
           model: 'googleai/gemini-pro',
-          prompt: `${basePrompt}
-The user is providing an update on their 7-day plan. Their message is: "${userMessage}".
+          prompt: `${basePrompt}The user is providing an update on their 7-day plan. Their message is: "${userMessage}".
 Analyze their message to determine if they completed a task.
 If they completed a task, provide an encouraging response like "Awesome job! Keep that momentum going!".
 If they are stuck, offer help or a motivational tip like "No worries, every expert was once a beginner. What's the specific part you're stuck on?".`,
@@ -192,8 +189,7 @@ If they are stuck, offer help or a motivational tip like "No worries, every expe
       case 'COMPLETE': {
          const { output: message } = await ai.generate({
             model: 'googleai/gemini-pro',
-            prompt: `${basePrompt}
-The user has completed their initial 7-day plan and is ready to monetize.
+            prompt: `${basePrompt}The user has completed their initial 7-day plan and is ready to monetize.
 Their chosen path is '${userProfile.chosen_path}'.
 Give them a simple, actionable first step to start earning. For 'Freelance writing', suggest creating a Fiverr gig. For 'Print-on-Demand', suggest an Etsy store listing. For 'YouTube Shorts', suggest setting up their channel profile.
 End by asking if they're ready for that step.`,
@@ -215,5 +211,3 @@ End by asking if they're ready for that step.`,
     }
   }
 );
-
-    
