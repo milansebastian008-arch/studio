@@ -1,32 +1,58 @@
+
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc, getDoc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
+// This function loads the Razorpay script and adds it to the page
+const useRazorpayScript = () => {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+};
+
 const RazorpayButton: React.FC = () => {
+  useRazorpayScript(); // Load the script when the component mounts
   const { user } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const handlePaymentSuccess = async (response: any) => {
-        if (!user || !firestore) {
-          toast({
-            variant: 'destructive',
-            title: 'Authentication Error',
-            description: 'You must be logged in to complete a purchase.',
-          });
-          // Redirect to login if user context is lost
-          router.push('/login');
-          return;
-        }
+  const handlePayment = useCallback(async () => {
+    if (!user || !firestore) {
+      toast({
+        title: 'Please log in',
+        description: 'You need to be logged in to make a purchase.',
+      });
+      sessionStorage.setItem('redirectAfterLogin', '/#pricing');
+      router.push('/login');
+      return;
+    }
+    
+    // This is your Razorpay Test Key ID.
+    const razorpayKeyId = 'rzp_test_p7mN4A1nS0Yl9S';
 
+    const options = {
+      key: razorpayKeyId,
+      amount: 50 * 100, // Amount in paise (50 INR)
+      currency: 'INR',
+      name: 'Millionaire Mindset',
+      description: 'Success Pathway Guide',
+      image: 'https://picsum.photos/seed/logo/128/128', // Placeholder logo
+      handler: async function (response: any) {
+        // This function is called on successful payment
         try {
-            // 1. Create Transaction
+            // 1. Create Transaction in Firestore
             const transactionsCollectionRef = collection(firestore, 'users', user.uid, 'transactions');
             const transactionId = doc(transactionsCollectionRef).id;
             const transactionRef = doc(transactionsCollectionRef, transactionId);
@@ -38,11 +64,9 @@ const RazorpayButton: React.FC = () => {
                 transactionDate: serverTimestamp(),
                 amount: 50,
                 paymentGatewayTransactionId: response.razorpay_payment_id,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpaySignature: response.razorpay_signature,
             });
             
-            // 2. Handle Referral
+            // 2. Handle Referral Logic
             const userDocRef = doc(firestore, 'users', user.uid);
             const userDocSnap = await getDoc(userDocRef);
             
@@ -65,12 +89,12 @@ const RazorpayButton: React.FC = () => {
                             referredUserId: user.uid,
                             transactionId: transactionId,
                             referralDate: serverTimestamp(),
-                            commissionAmount: 10,
+                            commissionAmount: 10, // 20% of 50 INR
                         });
                         
                         toast({
                           title: 'Referral Success!',
-                          description: `Your referrer has been awarded their commission!`,
+                          description: `Your referrer has earned a commission!`,
                         });
                     }
                 }
@@ -80,78 +104,35 @@ const RazorpayButton: React.FC = () => {
             router.push('/success');
 
         } catch (error: any) {
-            console.error('Error processing payment:', error);
+            console.error('Error processing payment post-confirmation:', error);
             toast({
                 variant: 'destructive',
                 title: 'Payment Processing Failed',
-                description: error.message || 'Could not save transaction details.',
+                description: error.message || 'Could not save transaction details. Please contact support.',
             });
         }
+      },
+      prefill: {
+        name: user.displayName || '',
+        email: user.email || '',
+      },
+      theme: {
+        color: '#8A2BE2', // A purple color to match the theme
+      },
     };
 
-    // Make the function available globally for Razorpay to call
-    (window as any).onPaymentSuccess = handlePaymentSuccess;
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
 
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-
-    // IMPORTANT: Define the function before the script is loaded
-    script.onload = () => {
-        // This is where you might initialize something if needed, but for payment
-        // buttons, the button itself handles the initialization.
-    };
-    
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-      delete (window as any).onPaymentSuccess;
-    };
   }, [user, firestore, router, toast]);
 
-  const handleButtonClick = () => {
-    if (!user) {
-      toast({
-        title: 'Please log in',
-        description: 'You need to be logged in to make a purchase.',
-      });
-      sessionStorage.setItem('redirectAfterLogin', '/#pricing');
-      router.push('/login');
-    } else {
-        // Find the button and click it programmatically
-        const razorpayButton = document.querySelector('.razorpay-payment-button') as HTMLElement;
-        if (razorpayButton) {
-            razorpayButton.click();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Payment Error',
-                description: 'Could not initialize payment. Please refresh and try again.',
-            });
-        }
-    }
-  };
-  
-  // This form will be hidden. We will trigger the click with our own styled button.
   return (
-    <div>
-        <form style={{display: 'none'}}>
-            <script
-                src="https://checkout.razorpay.com/v1/payment-button.js"
-                data-payment_button_id="pl_RYGUqAlaL3Qy4M" // Your Payment Button ID
-                data-callback_url="/success" // This will be overridden by the event listener
-                data-redirect="false" // Prevent auto-redirect
-            >
-            </script>
-        </form>
-         <button
-            onClick={handleButtonClick}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:scale-105 h-11 px-8"
-        >
-            Invest ₹50 Now
-        </button>
-    </div>
+    <button
+      onClick={handlePayment}
+      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg transition-transform hover:scale-105 h-11 px-8"
+    >
+      Invest ₹50 Now
+    </button>
   );
 };
 
