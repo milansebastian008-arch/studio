@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,13 @@ import { Skeleton } from '../ui/skeleton';
 // Define the initial state for the chat
 const initialState: MentorFlowOutput = {
   nextStage: 'GREETING',
-  mentorResponse: '',
-  conversationHistory: [],
+  mentorResponse: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
+  conversationHistory: [
+    {
+      role: 'model',
+      content: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
+    },
+  ],
 };
 
 export default function AIMentorChat() {
@@ -26,10 +31,10 @@ export default function AIMentorChat() {
   const [chatState, formAction, isFormPending] = useActionState<MentorFlowOutput, FormData>(
     async (previousState, formData) => {
       const userMessage = formData.get('userMessage') as string;
+      if (!userMessage) return previousState;
       
       const input: MentorFlowInput = {
-        // If it's the very first message, start with GREETING stage
-        currentStage: previousState.conversationHistory.length === 0 ? 'GREETING' : previousState.nextStage,
+        currentStage: previousState.nextStage,
         userMessage: userMessage,
         userName: user?.displayName || 'User',
         conversationHistory: previousState.conversationHistory,
@@ -56,17 +61,6 @@ export default function AIMentorChat() {
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
-          {chatState.conversationHistory.length === 0 && (
-             <div className="flex items-start gap-3">
-              <Avatar>
-                <AvatarFallback>M</AvatarFallback>
-              </Avatar>
-              <div className="bg-muted rounded-lg p-3 max-w-xs">
-                <p className="text-sm">Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?</p>
-              </div>
-            </div>
-          )}
-
           {chatState.conversationHistory.map((entry, index) => (
             <div
               key={index}
