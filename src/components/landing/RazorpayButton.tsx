@@ -39,6 +39,7 @@ const RazorpayButton: React.FC = () => {
         title: 'Authentication Required',
         description: 'Please log in or sign up to make a payment.',
       });
+      sessionStorage.setItem('redirectAfterLogin', '/#pricing');
       router.push('/login');
       return;
     }
@@ -102,3 +103,5 @@ const RazorpayButton: React.FC = () => {
 };
 
 export default RazorpayButton;
+
+    
