@@ -25,7 +25,7 @@ function determineSystemPrompt(history: ChatHistory, userMessage: string): strin
     if (history.length < 2) { // Initial interaction (greeting + first user message)
         return systemPrompts.GREETING;
     }
-    if (userMessage.toLowerCase().includes('thank you') || userMessage.toLowerCase().includes('thanks')) {
+    if (userMessage.toLowerCase().includes('thank')) {
         return systemPrompts.CONCLUDED;
     }
     return systemPrompts.PROVIDE_ADVICE;
@@ -36,30 +36,34 @@ export async function getMentorResponse(history: ChatHistory, userMessage: strin
     try {
         const systemPrompt = determineSystemPrompt(history, userMessage);
 
-        const messages: Array<{role: string, content: Array<{text: string}>}> = history.map(entry => ({
-            role: entry.role,
-            content: [{ text: entry.content }],
-        }));
+        const messages = [
+            { role: 'system', content: systemPrompt + ` Address the user as ${userName} when appropriate.` },
+            ...history.map(entry => ({
+                role: entry.role,
+                content: entry.content,
+            })),
+            { role: 'user', content: userMessage }
+        ];
 
-        console.log("🟢 Calling Gemini model with:", { userMessage, systemPrompt });
+        console.log("🟢 Calling Gemini model with system prompt and history.");
 
         const llmResponse = await ai.generate({
-            model: 'gemini-1.5-flash-latest',
-            prompt: userMessage,
-            system: systemPrompt + ` Address the user as ${userName} when appropriate.`,
-            history: messages,
+            model: 'gemini-1.5-flash',
+            messages: messages,
         });
+        
+        const replyText = llmResponse.text;
+        
+        console.log("🟢 Gemini response:", replyText);
 
-        console.log("🟢 Gemini response:", llmResponse.text);
-
-        if (!llmResponse.text) {
+        if (!replyText) {
              throw new Error('Empty response from Genkit.');
         }
 
-        return llmResponse.text;
+        return replyText;
     } catch (err: any) {
         console.error("🔴 Error inside getMentorResponse:", err);
-        // Return a user-friendly error message, but the actual error is logged on the server.
-        throw err;
+        // This error will be caught by the API route and sent to the client.
+        throw new Error('Failed to get a response from the AI mentor.');
   }
 }
