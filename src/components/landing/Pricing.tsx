@@ -1,8 +1,7 @@
-import { Button } from '@/components/ui/button';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Check } from 'lucide-react';
-import Link from 'next/link';
-import RazorpayButton from './RazorpayButton';
+import RazorpaySimpleButton from './RazorpaySimpleButton';
 
 const includedFeatures = [
     'Complete PDF Guide',
@@ -37,7 +36,7 @@ export default function Pricing() {
                 </ul>
             </CardContent>
             <CardFooter className='justify-center'>
-               <RazorpayButton />
+               <RazorpaySimpleButton />
             </CardFooter>
         </Card>
       </div>
