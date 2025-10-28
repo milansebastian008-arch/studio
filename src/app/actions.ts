@@ -1,44 +1,73 @@
 'use server';
-
-import { personalizedWealthStrategies } from '@/ai/flows/personalized-wealth-strategies';
+/**
+ * @fileoverview Server actions for the AI Mentor feature.
+ */
 import { z } from 'zod';
+import { mentorFlow } from '@/ai/flows/mentor-flow';
+import { updateDoc, doc } from 'firebase/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import { adminApp } from '@/firebase/admin';
+
+// Initialize Firestore from the admin app
+const db = getFirestore(adminApp);
 
 const formSchema = z.object({
-  userInfo: z.string().min(50, "Please provide at least 50 characters."),
-  riskAppetite: z.enum(["low", "medium", "high"]),
+  userId: z.string(),
+  currentStage: z.enum([
+    'GREETING',
+    'ONBOARDING_INTEREST',
+    'ONBOARDING_GOAL',
+    'PATH_SELECTION',
+    'ACTION_PLAN',
+    'PROGRESS_UPDATE',
+    'COMPLETE',
+  ]),
+  userMessage: z.string(),
+  userProfile: z.any(),
 });
 
-export async function getWealthStrategies(prevState: any, formData: FormData) {
+export async function getMentorResponse(prevState: any, formData: FormData) {
   const validatedFields = formSchema.safeParse({
-    userInfo: formData.get('userInfo'),
-    riskAppetite: formData.get('riskAppetite'),
+    userId: formData.get('userId'),
+    currentStage: formData.get('currentStage'),
+    userMessage: formData.get('userMessage'),
+    userProfile: JSON.parse(formData.get('userProfile') as string),
   });
 
   if (!validatedFields.success) {
     return {
-      data: null,
+      messages: [],
       error: validatedFields.error.flatten().fieldErrors,
+      currentStage: prevState.currentStage,
     };
   }
 
-  const userResponses = `User Info: ${validatedFields.data.userInfo}\nRisk Appetite: ${validatedFields.data.riskAppetite}`;
-  
-  // Hardcode current affairs for this implementation
-  const currentAffairs = "The Indian economy shows strong growth in tech and renewable energy. Inflation is a concern, leading to RBI interest rate adjustments. The stock market is volatile but holds long-term opportunities, especially in mid-cap segments. Real estate in Tier-2 cities is appreciating.";
+  const { userId, userMessage, userProfile, currentStage } = validatedFields.data;
 
   try {
-    const result = await personalizedWealthStrategies({
-      userResponses,
-      currentAffairs,
+    const result = await mentorFlow({
+      stage: currentStage,
+      userMessage: userMessage,
+      userProfile: userProfile,
     });
+
+    // Update user profile in Firestore if there's new data
+    if (result.updatedProfile) {
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, result.updatedProfile);
+    }
+    
     return {
-        data: result.wealthStrategies,
-        error: null
+      messages: result.messages,
+      error: null,
+      currentStage: result.nextStage,
     };
+
   } catch (e: any) {
-    return { 
-        data: null,
-        error: e.message || "Failed to generate strategies. Please try again." 
+    return {
+      messages: [],
+      error: e.message || 'Failed to get response from AI mentor. Please try again.',
+      currentStage: currentStage,
     };
   }
 }
