@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { mentorFlow } from '@/ai/flows/mentor-flow';
-import { updateDoc, doc, setDoc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { updateDoc, doc, setDoc, getDoc, collection, serverTimestamp, runTransaction, query, where, getDocs, limit } from 'firebase/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/firebase/admin';
 
@@ -119,28 +119,28 @@ export async function handleSuccessfulPayment(prevState: any, formData: FormData
             // 2. Check for referral and create referral record if applicable
             const userData = userDoc.data();
             if (userData.referredBy) {
-                // In a real app, you'd query for the user with this referral code.
-                // For now, we assume the referredBy code belongs to a valid user.
-                // This is a simplified lookup for demonstration.
-                const referralsRef = collection(db, 'referrals');
-                const newReferralRef = doc(referralsRef);
-                
-                // We'd need a query to find the referrer's UID from their code.
-                // This part is complex without a reverse lookup collection.
-                // For now, we will log that a referral was made, but crediting is a TODO.
-                console.log(`Referral detected for user ${userId} by code ${userData.referredBy}. Crediting logic needed.`);
-                
-                // Example of what creating the referral might look like if we had the referrer's ID
-                /*
-                transaction.set(newReferralRef, {
-                    id: newReferralRef.id,
-                    referrerId: "UID_OF_REFERRER", // This needs to be looked up
-                    referredUserId: userId,
-                    transactionId: paymentId,
-                    referralDate: serverTimestamp(),
-                    commissionAmount: 10, // 10 INR commission
-                });
-                */
+                // Find the referrer by their referral code
+                const usersCollection = collection(db, 'users');
+                const referrerQuery = query(usersCollection, where('referralCode', '==', userData.referredBy), limit(1));
+                const referrerSnapshot = await getDocs(referrerQuery);
+
+                if (!referrerSnapshot.empty) {
+                    const referrerDoc = referrerSnapshot.docs[0];
+                    const referrerId = referrerDoc.id;
+
+                    // Create the referral document
+                    const newReferralRef = doc(collection(db, 'referrals'));
+                    transaction.set(newReferralRef, {
+                        id: newReferralRef.id,
+                        referrerId: referrerId,
+                        referredUserId: userId,
+                        transactionId: paymentId,
+                        referralDate: serverTimestamp(),
+                        commissionAmount: 10, // 10 INR commission
+                    });
+                } else {
+                    console.log(`Referrer with code ${userData.referredBy} not found.`);
+                }
             }
         });
         
