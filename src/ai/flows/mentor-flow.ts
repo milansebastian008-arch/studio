@@ -55,24 +55,21 @@ User's Profile Data: ${JSON.stringify(userProfile)}
       case 'GREETING': {
         const { output } = await ai.generate({
           prompt: `${basePrompt}
-The user has just logged in to the chat for the first time. Their first message is "${userMessage}".
+The user has just logged in to the chat for the first time.
 Welcome the user warmly by name. Introduce yourself as Mindy, their personal AI mentor for the 'Millionaire Mindset' program.
-Check if they are ready to start their journey to discover how to earn online. If they say "yes" or similar, move to ONBOARDING_INTEREST.
-Otherwise, provide a friendly encouragement and ask if they're ready to begin.`,
+Check if they are ready to start their journey to discover how to earn online.`,
           output: {
             schema: z.object({
               response: z.string().describe("Your conversational welcome message."),
-              nextStage: MentorStageSchema
             })
           }
         });
         if (!output) throw new Error("AI did not generate a response.");
         
-        let messages = [output.response];
-        if(output.nextStage === 'ONBOARDING_INTEREST'){
-            messages.push("Awesome! To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other");
-        }
-        return { messages, nextStage: output.nextStage };
+        return { 
+          messages: [output.response, "To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other"], 
+          nextStage: 'ONBOARDING_INTEREST' 
+        };
       }
 
       case 'ONBOARDING_INTEREST': {
@@ -180,7 +177,7 @@ The plan has 7 days, so each completed day is about 14% progress.`,
           output: {
             schema: z.object({
               completedTask: z.boolean().describe("True if the user indicates they completed a task."),
-              progressIncrement: z.number().describe("The percentage progress to add. Should be around 14 for one completed day.").describe("The percentage of progress to add for the task."),
+              progressIncrement: z.number().describe("The percentage progress to add. Should be around 14 for one completed day."),
               response: z.string().describe("Your motivational response to their update."),
             }),
           },
@@ -190,7 +187,7 @@ The plan has 7 days, so each completed day is about 14% progress.`,
         const newProgress = (userProfile.progress_score || 0) + (output.completedTask ? output.progressIncrement : 0);
 
         let messages = [output.response];
-        if (newProgress >= 100) {
+        if (newProgress >= 98) { // Allow for slight variation, check if they are basically done
             messages.push("You've completed the 7-day plan! That's incredible! You've built some real momentum. Ready to talk about how to monetize this?");
             return {
                 messages,

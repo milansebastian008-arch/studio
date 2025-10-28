@@ -55,11 +55,11 @@ export function AIMentorChat() {
         const initialFormData = new FormData();
         initialFormData.append('userId', user.uid);
         initialFormData.append('currentStage', 'GREETING');
-        initialFormData.append('userMessage', 'Hi, I just signed up!');
+        initialFormData.append('userMessage', 'Hi, I just signed up and I am ready to start!');
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
-  }, [user, userProfile, messages.length, state.messages.length, formAction]);
+  }, [user, userProfile]);
 
   // Handle new messages from the form action
   useEffect(() => {

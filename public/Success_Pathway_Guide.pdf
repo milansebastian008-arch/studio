@@ -1,13 +1,63 @@
-This is a placeholder for the "Success Pathway" PDF guide.
-
-In a real-world scenario, you would replace this text file with your actual PDF document.
-
-The guide would contain valuable chapters on:
-- Proven Wealth Strategies
-- The Law of Attraction
-- Powerful Daily Habits
-- Millionaire Mindset Hacks
-- Real-Life Success Stories
-- Weekly Reflection Tools
-
-Thank you for purchasing!
+%PDF-1.4
+1 0 obj
+<< /Title (Success Pathway Guide)
+   /Creator (Millionaire Mindset)
+   /Producer (Firebase Studio)
+>>
+endobj
+2 0 obj
+<< /Type /Catalog
+   /Pages 3 0 R
+>>
+endobj
+3 0 obj
+<< /Type /Pages
+   /Kids [4 0 R]
+   /Count 1
+>>
+endobj
+4 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 5 0 R
+>>
+endobj
+5 0 obj
+<< /Length 135 >>
+stream
+BT
+/F1 24 Tf
+220 700 Td
+(Success Pathway Guide) Tj
+ET
+BT
+/F1 16 Tf
+100 600 Td
+(Thank you for your purchase!) Tj
+ET
+BT
+/F1 12 Tf
+100 550 Td
+(This is your placeholder guide. You have successfully unlocked your path to success.) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000096 00000 n 
+0000000147 00000 n 
+0000000204 00000 n 
+000<div>
+  <p>The payment part is still not working. We haven't connected the Razorpay with the app till now that might be the issue. Before, we were using the Razorpay button, right?</p>
+</div>
+000305 00000 n 
+trailer
+<< /Size 6
+   /Root 2 0 R
+>>
+startxref
+455
+%%EOF
