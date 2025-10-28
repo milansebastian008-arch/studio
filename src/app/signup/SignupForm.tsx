@@ -65,6 +65,9 @@ export default function SignupForm() {
     const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     try {
+      if (!auth || !firestore) {
+        throw new Error('Authentication or Firestore service is not available.');
+      }
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
