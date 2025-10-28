@@ -57,7 +57,7 @@ export function AIMentorChat() {
         };
         setMessages([greetingMessage]);
     }
-  }, [userProfile, messages.length, state.messages.length]);
+  }, [userProfile]);
   
   // Handle new messages from the form action
   useEffect(() => {
