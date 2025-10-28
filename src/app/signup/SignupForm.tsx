@@ -51,10 +51,17 @@ export default function SignupForm() {
     }
   }, [refCode, toast]);
 
+  // Effect to handle redirection *after* client-side hydration
+  useEffect(() => {
+    if (!isUserLoading && user) {
+        router.push('/account');
+    }
+  }, [user, isUserLoading, router]);
+
   const onSubmit = async (data: FormSchema) => {
     setIsLoading(true);
     
-    // Generate referral code here, only on client-side submission
+    // Generate referral code only on client-side submission to avoid hydration errors
     const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     try {
@@ -80,7 +87,7 @@ export default function SignupForm() {
         title: 'Account Created',
         description: "You've been successfully signed up.",
       });
-      router.push('/account');
+      // Redirection is handled by the useEffect hook
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -92,19 +99,12 @@ export default function SignupForm() {
     }
   };
   
-  useEffect(() => {
-    // This effect handles redirection after the component has mounted.
-    // It prevents a hydration mismatch by ensuring redirection logic
-    // only runs on the client-side after the initial render.
-    if (!isUserLoading && user) {
-        router.push('/account');
-    }
-  }, [user, isUserLoading, router]);
-
-  // To prevent rendering the form while loading or if a user is already logged in
-  // and about to be redirected, we can show a loading state.
-  if (isUserLoading || user) {
+  if (isUserLoading) {
     return <div>Loading...</div>;
+  }
+
+  if(user) {
+    return null;
   }
 
   return (

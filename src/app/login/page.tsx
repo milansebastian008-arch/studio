@@ -38,6 +38,15 @@ export default function LoginPage() {
     },
   });
 
+  // Effect to handle redirection *after* client-side hydration
+  useEffect(() => {
+    if (!isUserLoading && user) {
+        const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.push(redirectUrl);
+    }
+  }, [user, isUserLoading, router]);
+
   const onSubmit = async (data: FormSchema) => {
     setIsLoading(true);
     try {
@@ -46,9 +55,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: "You've been successfully logged in.",
       });
-      const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
-      sessionStorage.removeItem('redirectAfterLogin');
-      router.push(redirectUrl);
+      // Redirection is handled by the useEffect hook
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -59,27 +66,21 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    // This effect handles redirection after the component has mounted.
-    // It prevents a hydration mismatch by ensuring redirection logic
-    // only runs on the client-side after the initial render.
-    if (!isUserLoading && user) {
-        const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
-        sessionStorage.removeItem('redirectAfterLogin');
-        router.push(redirectUrl);
-    }
-  }, [user, isUserLoading, router]);
   
-  // To prevent rendering the form while loading or if a user is already logged in
-  // and about to be redirected, we can show a loading state. This is safe because
-  // the redirection logic is now in useEffect.
-  if (isUserLoading || user) {
+  // Render loading state if Firebase auth is still initializing
+  // This helps prevent a flash of the login form for an already logged-in user.
+  if (isUserLoading) {
       return (
         <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
           <div>Loading...</div>
         </div>
       );
+  }
+  
+  // If a user object exists, the useEffect will handle the redirect.
+  // Rendering null or a loading indicator prevents the form from flashing.
+  if (user) {
+    return null;
   }
 
   return (

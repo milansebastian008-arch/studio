@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -12,9 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, Lock, IndianRupee } from 'lucide-react';
+import { Copy, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import {
@@ -31,7 +29,6 @@ import { Label } from "@/components/ui/label";
 
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
-  
   const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
@@ -63,30 +60,6 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
             <Copy className="h-4 w-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function AIAssistantCard({ hasPaid }: { hasPaid: boolean }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Wealth Assistant</CardTitle>
-        <CardDescription>Your personal guide to financial freedom.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {hasPaid
-            ? 'Get personalized advice and strategies to kickstart your journey.'
-            : 'Purchase the guide to unlock your personal AI assistant.'}
-        </p>
-        <Button asChild disabled={!hasPaid} className={!hasPaid ? 'cursor-not-allowed' : ''}>
-          <Link href={hasPaid ? '/discover' : '#'} aria-disabled={!hasPaid} tabIndex={hasPaid ? undefined : -1}>
-            { !hasPaid && <Lock className="mr-2 h-4 w-4" /> }
-            Launch Assistant
-          </Link>
-        </Button>
       </CardContent>
     </Card>
   );
@@ -261,24 +234,15 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const transactionsCollectionRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'transactions');
-  }, [firestore, user]);
-
   const referralsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'referrals'), where('referrerId', '==', user.uid));
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
-  const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsCollectionRef);
   const { data: referrals, isLoading: isReferralsLoading } = useCollection(referralsQuery);
 
-  const isLoading = isUserLoading || isUserDataLoading || isTransactionsLoading || isReferralsLoading;
-  
-  // Check for specific user override OR if transactions exist
-  const hasPaid = !isLoading && (transactions && transactions.length > 0 || user?.email === 'milansebastian008@gmail.com');
+  const isLoading = isUserLoading || isUserDataLoading || isReferralsLoading;
 
   const handleWithdraw = async (paymentDetails: string, amount: number) => {
     if (!user || !firestore) return;
@@ -334,7 +298,6 @@ export default function AccountPage() {
           <p className="text-muted-foreground">This is your account dashboard.</p>
           
           <div className="grid gap-8 pt-6 md:grid-cols-2">
-            <AIAssistantCard hasPaid={hasPaid} />
             {userData?.referralCode && <ReferralCard referralCode={userData.referralCode} />}
             {referrals && <ReferralDashboard referrals={referrals} onWithdraw={handleWithdraw} />}
           </div>
