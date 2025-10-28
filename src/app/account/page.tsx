@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -29,13 +30,15 @@ import { Label } from "@/components/ui/label";
 
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
-  const [referralLink, setReferralLink] = useState('');
+  const [origin, setOrigin] = useState('');
 
   useEffect(() => {
     // This ensures window.location.origin is only accessed on the client-side
     // after the component has mounted, preventing hydration mismatches.
-    setReferralLink(`${window.location.origin}/signup?ref=${referralCode}`);
-  }, [referralCode]);
+    setOrigin(window.location.origin);
+  }, []);
+
+  const referralLink = origin ? `${origin}/signup?ref=${referralCode}` : '';
 
   const handleCopy = () => {
     if (referralLink) {
