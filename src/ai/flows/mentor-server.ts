@@ -41,6 +41,8 @@ export async function getMentorResponse(history: ChatHistory, userMessage: strin
             content: [{ text: entry.content }],
         }));
 
+        console.log("🟢 Calling Gemini model with:", { userMessage, systemPrompt });
+
         const llmResponse = await ai.generate({
             model: 'gemini-1.5-flash-latest',
             prompt: userMessage,
@@ -48,14 +50,16 @@ export async function getMentorResponse(history: ChatHistory, userMessage: strin
             history: messages,
         });
 
+        console.log("🟢 Gemini response:", llmResponse.text);
+
         if (!llmResponse.text) {
              throw new Error('Empty response from Genkit.');
         }
 
         return llmResponse.text;
     } catch (err: any) {
-        console.error('💥 getMentorResponse error:', err);
+        console.error("🔴 Error inside getMentorResponse:", err);
         // Return a user-friendly error message, but the actual error is logged on the server.
-        return "I'm having trouble connecting right now. Please try again in a moment.";
+        throw err;
   }
 }
