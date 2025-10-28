@@ -101,8 +101,8 @@ export function useCollection<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
+        // Do not throw the error globally anymore, just log it.
+        console.error('Firestore Permission Error:', contextualError.message);
       }
     );
 
