@@ -40,6 +40,7 @@ export function AIMentorChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const hasSentInitialGreeting = useRef(false);
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -51,27 +52,34 @@ export function AIMentorChat() {
 
   // This effect runs once when the component loads to initiate the conversation
   useEffect(() => {
-    // Only trigger if we have a user profile and no messages have been sent yet
-    if (userProfile && user && messages.length === 0 && state.messages.length === 0) {
+    // Only trigger if we have a user profile, user, and haven't sent the greeting yet.
+    if (userProfile && user && !hasSentInitialGreeting.current) {
+        hasSentInitialGreeting.current = true;
         const initialFormData = new FormData();
         initialFormData.append('userId', user.uid);
         initialFormData.append('currentStage', 'GREETING');
-        // The userMessage is not needed for the GREETING stage, but we send something to trigger the flow
         initialFormData.append('userMessage', 'Initial greeting');
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, formAction]);
+
 
   // Handle new messages from the form action
   useEffect(() => {
     if (state.messages && state.messages.length > 0) {
-      const newMessages: Message[] = state.messages.map((msg: string, index: number) => ({
-        id: `ai-${Date.now()}-${index}`,
-        role: 'assistant',
-        text: msg,
-      }));
-      setMessages((prev) => [...prev, ...newMessages]);
+      // Check if the new messages are different from the last AI messages to prevent duplicates
+      const lastAIMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0]?.text;
+      const newAIMessage = state.messages[state.messages.length-1];
+
+      if (lastAIMessage !== newAIMessage) {
+        const newMessages: Message[] = state.messages.map((msg: string, index: number) => ({
+          id: `ai-${Date.now()}-${index}`,
+          role: 'assistant',
+          text: msg,
+        }));
+        setMessages((prev) => [...prev, ...newMessages]);
+      }
     }
   }, [state.messages]);
 
@@ -168,7 +176,7 @@ export function AIMentorChat() {
       {state.error && (
         <div className="p-6 pt-0">
           <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-            An error occurred: {JSON.stringify(state.error)}
+            An error occurred: {typeof state.error === 'object' ? JSON.stringify(state.error) : state.error}
           </div>
         </div>
       )}
