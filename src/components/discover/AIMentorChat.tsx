@@ -23,8 +23,7 @@ export default function AIMentorChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
 
-  // This is the key fix: prevent hydration errors by ensuring client-only
-  // logic runs after the component has mounted.
+  // This ensures client-only logic runs after the component has mounted.
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -56,7 +55,8 @@ export default function AIMentorChat() {
       const initialFormData = new FormData();
       formAction(initialFormData);
     }
-  }, [isFormPending]); // Depend on isFormPending to avoid re-triggering during a request.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Depend on isFormPending to avoid re-triggering during a request.
 
 
   // Effect to scroll to the bottom of the chat on new messages
