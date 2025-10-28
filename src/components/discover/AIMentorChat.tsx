@@ -13,7 +13,7 @@ import { getMentorResponse, type MentorFlowOutput, type MentorFlowInput } from '
 // Define the initial state for the chat
 const initialState: MentorFlowOutput = {
   nextStage: 'GREETING',
-  mentorResponse: '', // Let the flow generate the first message
+  mentorResponse: '',
   conversationHistory: [],
 };
 
