@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
@@ -59,7 +60,7 @@ export function AIMentorChat() {
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
-  }, [user, userProfile, formAction, messages.length, state.messages.length]);
+  }, [user, userProfile]);
 
   // Handle new messages from the form action
   useEffect(() => {

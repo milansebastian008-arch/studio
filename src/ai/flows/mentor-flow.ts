@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines the Genkit flow for the AI Mentor.
@@ -54,17 +55,11 @@ User's Profile Data: ${JSON.stringify(userProfile)}
     // Stage-specific logic
     switch (stage) {
       case 'GREETING': {
-        const { output } = await ai.generate({
-          model: 'googleai/gemini-pro',
-          prompt: `${basePrompt}
-The user has just logged in to the chat for the first time.
-Welcome the user warmly by name. Introduce yourself as Mindy, their personal AI mentor for the 'Millionaire Mindset' program.
-Check if they are ready to start their journey to discover how to earn online.`,
-        });
-        if (!output) throw new Error("AI did not generate a response.");
-        
         return { 
-          messages: [output, "To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other"], 
+          messages: [
+            "🚀 Welcome to Millionaire Mindset! Let’s unlock your path to success — tell me about yourself or your idea so we can build your first earning plan.",
+            "To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other"
+          ], 
           nextStage: 'ONBOARDING_INTEREST' 
         };
       }
@@ -73,24 +68,15 @@ Check if they are ready to start their journey to discover how to earn online.`,
         // First, extract the interest
         const { output: interestOutput } = await ai.generate({
             model: 'googleai/gemini-pro',
-            prompt: `Extract the user's interest(s) from their message. The available interests are: Writing, Design, Marketing, Teaching, Coding, Video, Other. Return only the interest(s), comma-separated if multiple. User message: "${userMessage}"`,
+            prompt: `From the user's message, extract the category of their interest. The categories are: Writing, Design, Marketing, Teaching, Coding, Video, Other. Return ONLY the category name(s), comma-separated if multiple. User message: "${userMessage}"`,
             output: {
                 schema: z.string().describe("The identified interest, comma-separated if multiple."),
             }
         });
         if (!interestOutput) throw new Error("AI could not identify the interest.");
         
-        // Then, generate a conversational response
-        const { output: responseOutput } = await ai.generate({
-            model: 'googleai/gemini-pro',
-            prompt: `${basePrompt}
-The user just told you their interest is: "${interestOutput}".
-Acknowledge their choice with excitement and ask them about their main goal.`,
-        });
-        if (!responseOutput) throw new Error("AI did not generate a response.");
-
         return {
-          messages: [responseOutput, "Got it! Now, what's your main goal with this?\n- Earn income quickly\n- Learn a new skill deeply\n- Build a side project for freedom"],
+          messages: ["Awesome choice! That's a field with a ton of potential.", "Got it! Now, what's your main goal with this?\n- Earn income quickly\n- Learn a new skill deeply\n- Build a side project for freedom"],
           nextStage: 'ONBOARDING_GOAL',
           updatedProfile: { interest: interestOutput },
         };
@@ -100,21 +86,12 @@ Acknowledge their choice with excitement and ask them about their main goal.`,
         // First, extract the goal
         const { output: goalOutput } = await ai.generate({
             model: 'googleai/gemini-pro',
-            prompt: `Extract the user's goal from their message. The options were: Earn income quickly, Learn a new skill deeply, Build a side project for freedom. Return a short summary like 'Fast Income', 'Deep Learning', or 'Freedom Building'. User message: "${userMessage}"`,
+            prompt: `From the user's message, extract which of these goals they chose: 'Earn income quickly', 'Learn a new skill deeply', or 'Build a side project for freedom'. Return a short summary like 'Fast Income', 'Deep Learning', or 'Freedom Building'. User message: "${userMessage}"`,
             output: {
               schema: z.string().describe("The identified goal (e.g., 'Fast Income', 'Deep Learning', 'Freedom Building')."),
             }
         });
         if (!goalOutput) throw new Error("AI could not identify the goal.");
-        
-        // Then, generate a conversational response
-        const { output: responseOutput } = await ai.generate({
-            model: 'googleai/gemini-pro',
-            prompt: `${basePrompt}
-The user just told you their goal is related to: "${goalOutput}".
-Acknowledge their goal enthusiastically and tell them you're finding a path for them.`,
-        });
-        if (!responseOutput) throw new Error("AI did not generate a response.");
         
         const incomePaths: Record<string, string> = {
             'Writing': 'Freelance writing using AI assistants.',
@@ -122,14 +99,15 @@ Acknowledge their goal enthusiastically and tell them you're finding a path for 
             'Marketing': 'Managing social media with AI-generated content.',
             'Teaching': 'Building an online course with AI-powered tools.',
             'Coding': 'Developing AI automations or simple web apps.',
-            'Video': 'Creating viral YouTube Shorts with AI video tools.'
+            'Video': 'Creating viral YouTube Shorts with AI video tools.',
+            'Other': 'General content creation with AI tools.'
         };
 
         const primaryInterest = (userProfile.interest || 'Writing').split(',')[0].trim();
-        const recommendedPath = incomePaths[primaryInterest] || 'General content creation with AI tools.';
+        const recommendedPath = incomePaths[primaryInterest] || incomePaths['Other'];
         
         return {
-          messages: [responseOutput, `Based on your interest in ${primaryInterest}, I recommend this path to start: **${recommendedPath}**`, `This is a great starting point. Would you like me to create a 7-day action plan for this path?`],
+          messages: [`Great goal! Based on your interest in ${primaryInterest}, I've found a path for you.`, `I recommend this to start: **${recommendedPath}**`, `This is a great starting point. Would you like me to create a 7-day action plan for this path?`],
           nextStage: 'PATH_SELECTION',
           updatedProfile: { goal: goalOutput, recommended_path: recommendedPath },
         };
@@ -140,9 +118,9 @@ Acknowledge their goal enthusiastically and tell them you're finding a path for 
             model: 'googleai/gemini-pro',
             prompt: `${basePrompt}
 The user is confirming their chosen path. Their message is: "${userMessage}".
-Analyze if their message is a confirmation (e.g., "yes", "sounds good", "ok").
-If they confirm, generate an enthusiastic message and tell them you're creating their 7-day plan.
-If they decline or suggest something else, ask what they'd prefer to focus on instead so you can adjust.`,
+Analyze if their message is a confirmation (e.g., "yes", "sounds good", "ok", "let's do it").
+If they confirm, respond with an enthusiastic "Alright, let's do this! Generating your 7-day plan now...".
+If they decline or suggest something else, respond with "No problem! What would you prefer to focus on instead?".`,
             output: {
                 schema: z.object({
                     confirmed: z.boolean(),
@@ -162,7 +140,7 @@ If they decline or suggest something else, ask what they'd prefer to focus on in
 - **Day 6:** Share your work with one person or on one social media platform.
 - **Day 7:** Review your week, note what you learned, and plan one small next step.`;
              return {
-                 messages: [output.response, plan, "Let's start with Day 1! I'll be here to track your progress. Let me know when you've completed it."],
+                 messages: [output.response, plan, "Let's start with Day 1! I'll be here to track your progress. Let me know when you've completed a task."],
                  nextStage: 'PROGRESS_UPDATE',
                  updatedProfile: { chosen_path: userProfile.recommended_path, progress_score: 0 }
              }
@@ -180,20 +158,19 @@ If they decline or suggest something else, ask what they'd prefer to focus on in
           prompt: `${basePrompt}
 The user is providing an update on their 7-day plan. Their message is: "${userMessage}".
 Analyze their message to determine if they completed a task.
-If they completed a task, provide an encouraging response and update their progress.
-If they are stuck, offer help or a motivational tip.
-The plan has 7 days, so each completed day is about 14% progress.`,
+If they completed a task, provide an encouraging response like "Awesome job! Keep that momentum going!".
+If they are stuck, offer help or a motivational tip like "No worries, every expert was once a beginner. What's the specific part you're stuck on?".`,
           output: {
             schema: z.object({
               completedTask: z.boolean().describe("True if the user indicates they completed a task."),
-              progressIncrement: z.number().describe("The percentage progress to add. Should be around 14 for one completed day."),
               response: z.string().describe("Your motivational response to their update."),
             }),
           },
         });
         if (!output) throw new Error("AI did not generate a response.");
 
-        const newProgress = (userProfile.progress_score || 0) + (output.completedTask ? output.progressIncrement : 0);
+        const progressIncrement = 14;
+        const newProgress = (userProfile.progress_score || 0) + (output.completedTask ? progressIncrement : 0);
 
         let messages = [output.response];
         if (newProgress >= 98) { // Allow for slight variation, check if they are basically done
@@ -213,24 +190,18 @@ The plan has 7 days, so each completed day is about 14% progress.`,
       }
 
       case 'COMPLETE': {
-        const { output } = await ai.generate({
-          model: 'googleai/gemini-pro',
-          prompt: `${basePrompt}
-The user has completed their initial 7-day plan (progress is at or near 100). They are ready to monetize.
-Their message is: "${userMessage}".
-Based on their chosen path of '${userProfile.chosen_path}', provide guidance on the very next step to setting up for earning.
-For example, for 'Freelance writing', suggest creating a Fiverr gig. For 'Print-on-Demand', suggest an Etsy store listing. For 'YouTube Shorts', suggest setting up their channel profile.
-Give them a simple, actionable first step and ask if they're ready for it.`,
-          output: {
-            schema: z.object({
-              response: z.string().describe("Your guidance for the first monetization step."),
-            }),
-          },
-        });
-        if (!output) throw new Error("AI did not generate a response.");
+         const { output } = await ai.generate({
+            model: 'googleai/gemini-pro',
+            prompt: `${basePrompt}
+The user has completed their initial 7-day plan and is ready to monetize.
+Their chosen path is '${userProfile.chosen_path}'.
+Give them a simple, actionable first step to start earning. For 'Freelance writing', suggest creating a Fiverr gig. For 'Print-on-Demand', suggest an Etsy store listing. For 'YouTube Shorts', suggest setting up their channel profile.
+End by asking if they're ready for that step.`,
+          });
+          if (!output) throw new Error("AI did not generate a response.");
 
         return {
-          messages: [output.response],
+          messages: [output],
           nextStage: 'COMPLETE', // Stays in this stage for further monetization guidance
           updatedProfile: { monetization_status: true }
         };
