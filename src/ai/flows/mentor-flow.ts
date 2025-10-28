@@ -56,8 +56,8 @@ User's Profile Data: ${JSON.stringify(userProfile)}
         const { output } = await ai.generate({
           prompt: `${basePrompt}
 The user has just logged in to the chat for the first time. Their first message is "${userMessage}".
-Welcome the user warmly by name. Introduce yourself as Mindy, their personal AI mentor.
-Check if they are ready to start their journey. If they say "yes" or similar, move to ONBOARDING_INTEREST.
+Welcome the user warmly by name. Introduce yourself as Mindy, their personal AI mentor for the 'Millionaire Mindset' program.
+Check if they are ready to start their journey to discover how to earn online. If they say "yes" or similar, move to ONBOARDING_INTEREST.
 Otherwise, provide a friendly encouragement and ask if they're ready to begin.`,
           output: {
             schema: z.object({
@@ -70,7 +70,7 @@ Otherwise, provide a friendly encouragement and ask if they're ready to begin.`,
         
         let messages = [output.response];
         if(output.nextStage === 'ONBOARDING_INTEREST'){
-            messages.push("Awesome! To start, what are you passionate about? You can pick more than one.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other");
+            messages.push("Awesome! To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other");
         }
         return { messages, nextStage: output.nextStage };
       }
@@ -202,16 +202,17 @@ The plan has 7 days, so each completed day is about 14% progress.`,
         return {
           messages,
           nextStage: 'PROGRESS_UPDATE',
-          updatedProfile: { progress_score: newProgress },
+          updatedProfile: { progress_score: Math.min(newProgress, 99) }, // Cap at 99 until monetization
         };
       }
 
       case 'COMPLETE': {
         const { output } = await ai.generate({
           prompt: `${basePrompt}
-The user has completed their initial 7-day plan (progress is 100). They are ready to monetize.
+The user has completed their initial 7-day plan (progress is at or near 100). They are ready to monetize.
 Their message is: "${userMessage}".
-Provide guidance on the very next step to setting up for earning, like creating a Fiverr gig, an Etsy store listing, or a YouTube channel profile.
+Based on their chosen path of '${userProfile.chosen_path}', provide guidance on the very next step to setting up for earning.
+For example, for 'Freelance writing', suggest creating a Fiverr gig. For 'Print-on-Demand', suggest an Etsy store listing. For 'YouTube Shorts', suggest setting up their channel profile.
 Give them a simple, actionable first step and ask if they're ready for it.`,
           output: {
             schema: z.object({

@@ -51,15 +51,15 @@ export function AIMentorChat() {
   // This effect runs once when the component loads to initiate the conversation
   useEffect(() => {
     // Only trigger if we have a user profile and no messages have been sent yet
-    if (userProfile && messages.length === 0 && user) {
+    if (userProfile && user && messages.length === 0 && state.messages.length === 0) {
         const initialFormData = new FormData();
         initialFormData.append('userId', user.uid);
         initialFormData.append('currentStage', 'GREETING');
-        initialFormData.append('userMessage', 'Hi!');
+        initialFormData.append('userMessage', 'Hi, I just signed up!');
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
-  }, [userProfile, user]); // Depends on userProfile and user being loaded
+  }, [user, userProfile]);
 
   // Handle new messages from the form action
   useEffect(() => {
