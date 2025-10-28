@@ -147,7 +147,7 @@ If they decline or suggest something else, respond with "No problem! What would 
          } else {
              return {
                  messages: [output.response],
-                 nextStage: 'PATH_SELECTION', // Let them choose again
+                 nextStage: 'ONBOARDING_INTEREST', // Go back to interest selection if they decline.
              }
          }
       }
@@ -203,7 +203,7 @@ End by asking if they're ready for that step.`,
         return {
           messages: [message],
           nextStage: 'COMPLETE', // Stays in this stage for further monetization guidance
-          updatedProfile: { monetization_status: true }
+          updatedProfile: { monetization_status: 'ready' }
         };
       }
 
