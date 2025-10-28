@@ -92,13 +92,19 @@ export default function SignupForm() {
     }
   };
   
-  if (isUserLoading) {
-    return <div>Loading...</div>
-  }
-  
-  if (user) {
-    router.push('/account');
-    return null;
+  useEffect(() => {
+    // This effect handles redirection after the component has mounted.
+    // It prevents a hydration mismatch by ensuring redirection logic
+    // only runs on the client-side after the initial render.
+    if (!isUserLoading && user) {
+        router.push('/account');
+    }
+  }, [user, isUserLoading, router]);
+
+  // To prevent rendering the form while loading or if a user is already logged in
+  // and about to be redirected, we can show a loading state.
+  if (isUserLoading || user) {
+    return <div>Loading...</div>;
   }
 
   return (

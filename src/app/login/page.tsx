@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -60,6 +61,9 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
+    // This effect handles redirection after the component has mounted.
+    // It prevents a hydration mismatch by ensuring redirection logic
+    // only runs on the client-side after the initial render.
     if (!isUserLoading && user) {
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/account';
         sessionStorage.removeItem('redirectAfterLogin');
@@ -67,8 +71,15 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
   
+  // To prevent rendering the form while loading or if a user is already logged in
+  // and about to be redirected, we can show a loading state. This is safe because
+  // the redirection logic is now in useEffect.
   if (isUserLoading || user) {
-      return <div>Loading...</div>
+      return (
+        <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
+          <div>Loading...</div>
+        </div>
+      );
   }
 
   return (
