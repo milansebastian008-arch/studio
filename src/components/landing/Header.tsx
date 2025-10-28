@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, Sparkles, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
@@ -104,6 +105,12 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+            <Link
+              href="/discover"
+              className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Bot className='h-4 w-4'/> AI Mentor
+            </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
@@ -135,6 +142,13 @@ export default function Header() {
                             {link.label}
                             </Link>
                         ))}
+                         <Link
+                            href="/discover"
+                            className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                             onClick={() => setIsOpen(false)}
+                          >
+                            <Bot className='h-5 w-5'/> AI Mentor
+                          </Link>
                         </nav>
                          <MobileAuthButtons />
                     </div>
