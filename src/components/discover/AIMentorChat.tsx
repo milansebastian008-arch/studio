@@ -59,7 +59,7 @@ export function AIMentorChat() {
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, messages.length, state.messages.length, formAction]);
 
   // Handle new messages from the form action
   useEffect(() => {
