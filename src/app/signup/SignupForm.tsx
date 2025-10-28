@@ -59,7 +59,7 @@ export default function SignupForm() {
 
       await updateProfile(user, { displayName: data.name });
 
-      // Generate referral code inside the client-only function
+      // Generate referral code inside the client-only function to prevent hydration errors
       const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const userData: any = {
