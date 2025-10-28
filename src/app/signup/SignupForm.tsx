@@ -25,7 +25,6 @@ type FormSchema = z.infer<typeof formSchema>;
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [referralCode, setReferralCode] = useState('');
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
@@ -44,10 +43,6 @@ export default function SignupForm() {
   });
 
   useEffect(() => {
-    // Generate the referral code on the client side after the component mounts
-    // to prevent hydration errors.
-    setReferralCode(Math.random().toString(36).substring(2, 8).toUpperCase());
-
     if (refCode) {
       toast({
         title: 'Referral Applied!',
@@ -58,16 +53,9 @@ export default function SignupForm() {
 
   const onSubmit = async (data: FormSchema) => {
     setIsLoading(true);
-    if (!referralCode) {
-      // This is a fallback in case the form is submitted before the effect runs.
-      toast({
-        variant: 'destructive',
-        title: 'Please wait',
-        description: 'Generating your details, please try again in a moment.',
-      });
-      setIsLoading(false);
-      return;
-    }
+    
+    // Generate referral code here, only on client-side submission
+    const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
