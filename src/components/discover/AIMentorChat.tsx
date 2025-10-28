@@ -1,7 +1,7 @@
 
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { getMentorResponse } from '@/app/actions';
@@ -48,7 +48,7 @@ export function AIMentorChat() {
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  const [state, formAction] = useFormState(getMentorResponse, initialState);
+  const [state, formAction] = useActionState(getMentorResponse, initialState);
 
   // This effect runs once when the component loads to initiate the conversation
   useEffect(() => {
@@ -179,5 +179,3 @@ export function AIMentorChat() {
     </Card>
   );
 }
-
-    
