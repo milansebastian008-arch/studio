@@ -1,11 +1,10 @@
 
-'use server';
-
 /**
  * @fileoverview A multi-turn AI mentor flow.
  *
  * This file defines the logic for a conversational AI mentor that guides
  * the user through a series of questions to provide personalized advice.
+ * It also exports the schema definitions for the flow's input and output.
  */
 
 import { ai } from '@/ai/genkit';
@@ -44,20 +43,8 @@ export const MentorFlowOutputSchema = z.object({
 export type MentorFlowOutput = z.infer<typeof MentorFlowOutputSchema>;
 
 
-/**
- * A server action that processes the user's message and current conversation stage
- * to generate the next response from the AI mentor.
- */
-export async function getMentorResponse(
-  input: MentorFlowInput
-): Promise<MentorFlowOutput> {
-  // Directly call the Genkit flow
-  return mentorFlow(input);
-}
-
-
 // This is the main Genkit flow that orchestrates the conversation
-const mentorFlow = ai.defineFlow(
+export const mentorFlow = ai.defineFlow(
   {
     name: 'mentorFlow',
     inputSchema: MentorFlowInputSchema,

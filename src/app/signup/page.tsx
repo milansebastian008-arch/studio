@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+export const ssr = false;
+
 function SignupSkeleton() {
   return (
     <div className="space-y-4">

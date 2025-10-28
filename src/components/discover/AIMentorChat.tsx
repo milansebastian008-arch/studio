@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
-import { getMentorResponse, type MentorFlowOutput, type MentorFlowInput } from '@/ai/flows/mentor-flow';
+import { getMentorResponse } from '@/ai/actions';
+import { type MentorFlowOutput, type MentorFlowInput } from '@/ai/flows/mentor-flow';
 
 // Define the initial state for the chat
 const initialState: MentorFlowOutput = {

@@ -6,6 +6,9 @@ import AIMentorChat from '@/components/discover/AIMentorChat';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
+// Disable SSR for this page to prevent hydration mismatches with dynamic chat components.
+export const ssr = false;
+
 function ChatSkeleton() {
   return (
     <div className="flex flex-col h-full">
