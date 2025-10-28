@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -9,33 +9,34 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
 import { getMentorResponse, type MentorFlowOutput, type MentorFlowInput } from '@/ai/flows/mentor-flow';
-import { Skeleton } from '../ui/skeleton';
 
 // Define the initial state for the chat
 const initialState: MentorFlowOutput = {
   nextStage: 'GREETING',
-  mentorResponse: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
-  conversationHistory: [
-    {
-      role: 'model',
-      content: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
-    },
-  ],
+  mentorResponse: '', // Let the flow generate the first message
+  conversationHistory: [],
 };
 
 export default function AIMentorChat() {
   const { user } = useUser();
   const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // This is the key fix: prevent hydration errors by ensuring client-only
+  // logic runs after the component has mounted.
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [chatState, formAction, isFormPending] = useActionState<MentorFlowOutput, FormData>(
     async (previousState, formData) => {
       const userMessage = formData.get('userMessage') as string;
-      if (!userMessage) return previousState;
+      if (!userMessage && previousState.conversationHistory.length > 0) return previousState;
       
       const input: MentorFlowInput = {
         currentStage: previousState.nextStage,
-        userMessage: userMessage,
+        userMessage: userMessage || '', // Send empty message on first run to get greeting
         userName: user?.displayName || 'User',
         conversationHistory: previousState.conversationHistory,
       };
@@ -46,6 +47,17 @@ export default function AIMentorChat() {
     },
     initialState
   );
+  
+  // This effect will run once on mount to trigger the initial greeting from the AI.
+  useEffect(() => {
+    // Check if it's the very beginning of the conversation.
+    if (chatState.conversationHistory.length === 0 && !isFormPending) {
+      // Create a dummy FormData and call the action to get the initial greeting.
+      const initialFormData = new FormData();
+      formAction(initialFormData);
+    }
+  }, [isFormPending]); // Depend on isFormPending to avoid re-triggering during a request.
+
 
   // Effect to scroll to the bottom of the chat on new messages
   useEffect(() => {
@@ -82,7 +94,7 @@ export default function AIMentorChat() {
               >
                 <p className="text-sm">{entry.content}</p>
               </div>
-              {entry.role === 'user' && (
+              {entry.role === 'user' && isClient && ( // Only render user avatar on the client
                 <Avatar>
                   <AvatarImage src={user?.photoURL || undefined} />
                   <AvatarFallback>
@@ -93,7 +105,7 @@ export default function AIMentorChat() {
             </div>
           ))}
 
-           {isFormPending && (
+           {isFormPending && chatState.conversationHistory.some(m => m.role === 'user') && (
              <div className="flex items-start gap-3">
               <Avatar>
                 <AvatarFallback>M</AvatarFallback>
@@ -115,9 +127,9 @@ export default function AIMentorChat() {
             name="userMessage"
             placeholder="Type your message..."
             autoComplete="off"
-            disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}
+            disabled={isFormPending || chatState.nextStage === 'CONCLUDED' || chatState.conversationHistory.length === 0}
           />
-          <Button type="submit" size="icon" disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}>
+          <Button type="submit" size="icon" disabled={isFormPending || chatState.nextStage === 'CONCLUDED' || chatState.conversationHistory.length === 0}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
