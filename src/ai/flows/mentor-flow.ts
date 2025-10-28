@@ -110,7 +110,7 @@ const mentorFlow = ai.defineFlow(
       history: historyForPrompt,
     });
 
-    const mentorResponse = llmResponse.text();
+    const mentorResponse = llmResponse.text;
     
     // Build the new conversation history
     const newHistory = [...(input.conversationHistory || [])];
