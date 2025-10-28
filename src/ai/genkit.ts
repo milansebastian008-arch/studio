@@ -11,7 +11,7 @@ if (!googleApiKey) {
 }
 
 export const ai = genkit({
-  plugins: [googleAI({apiKey: googleApiKey})],
+  plugins: [googleAI()],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
