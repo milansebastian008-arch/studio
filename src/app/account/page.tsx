@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -35,7 +36,7 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
 
   useEffect(() => {
     // This ensures window.location.origin is only accessed on the client-side
-    // after the initial render, preventing hydration mismatches.
+    // after the component has mounted, preventing hydration mismatches.
     setReferralLink(`${window.location.origin}/signup?ref=${referralCode}`);
   }, [referralCode]);
 

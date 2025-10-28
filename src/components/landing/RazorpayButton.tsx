@@ -103,5 +103,3 @@ const RazorpayButton: React.FC = () => {
 };
 
 export default RazorpayButton;
-
-    
