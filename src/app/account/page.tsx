@@ -275,7 +275,8 @@ export default function AccountPage() {
 
   const isLoading = isUserLoading || isUserDataLoading || isTransactionsLoading || isReferralsLoading;
   
-  const hasPaid = transactions ? transactions.length > 0 : false;
+  // Check for specific user override OR if transactions exist
+  const hasPaid = !isLoading && (transactions && transactions.length > 0 || user?.email === 'milansebastian008@gmail.com');
 
   const handleWithdraw = async (paymentDetails: string, amount: number) => {
     if (!user || !firestore) return;
