@@ -68,18 +68,12 @@ export function AIMentorChat() {
   // Handle new messages from the form action
   useEffect(() => {
     if (state.messages && state.messages.length > 0) {
-      // Check if the new messages are different from the last AI messages to prevent duplicates
-      const lastAIMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0]?.text;
-      const newAIMessage = state.messages[state.messages.length-1];
-
-      if (lastAIMessage !== newAIMessage) {
-        const newMessages: Message[] = state.messages.map((msg: string, index: number) => ({
-          id: `ai-${Date.now()}-${index}`,
-          role: 'assistant',
-          text: msg,
-        }));
-        setMessages((prev) => [...prev, ...newMessages]);
-      }
+      const newMessages: Message[] = state.messages.map((msg: string, index: number) => ({
+        id: `ai-${Date.now()}-${index}`,
+        role: 'assistant',
+        text: msg,
+      }));
+      setMessages((prev) => [...prev, ...newMessages]);
     }
   }, [state.messages, state.currentStage]);
 
@@ -96,10 +90,12 @@ export function AIMentorChat() {
   const handleFormSubmit = (formData: FormData) => {
     const userMessage = formData.get('userMessage') as string;
     if (userMessage.trim() && userProfile) {
-      setMessages((prev) => [
-        ...prev,
+      const newMessages: Message[] = [
+        ...messages,
         { id: `user-${Date.now()}`, role: 'user', text: userMessage },
-      ]);
+      ];
+      setMessages(newMessages);
+
       // Append the latest user profile to the form data
       formData.set('userProfile', JSON.stringify(userProfile));
       formAction(formData);

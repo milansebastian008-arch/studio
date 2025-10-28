@@ -102,7 +102,7 @@ The user's name is: ${userProfile.name}.
             'Other': 'General content creation with AI tools.'
         };
 
-        const primaryInterest = (userProfile.interest || interestOutput || 'Writing').split(',')[0].trim();
+        const primaryInterest = (userProfile.interest || 'Writing').split(',')[0].trim();
         const recommendedPath = incomePaths[primaryInterest] || incomePaths['Other'];
 
         return {
