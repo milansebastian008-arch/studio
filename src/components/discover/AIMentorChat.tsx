@@ -15,19 +15,26 @@ interface ChatEntry {
 }
 
 async function fetchMentorResponse(history: ChatEntry[], userMessage: string, userName: string) {
-  const res = await fetch('/api/mentor', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ history, userMessage, userName }),
-  });
+  try {
+    const res = await fetch('/api/mentor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history, userMessage, userName }),
+    });
 
-  if (!res.ok) {
-    const errorBody = await res.text();
-    throw new Error(`API request failed: ${res.status} ${res.statusText} - ${errorBody}`);
+    if (!res.ok) {
+      const errorBody = await res.text();
+      console.error("Server error response:", errorBody);
+      throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.reply;
+  } catch (error) {
+    console.error("fetchMentorResponse error:", error);
+    // Re-throw the error to be caught by the handleSubmit function's catch block
+    throw error;
   }
-
-  const data = await res.json();
-  return data.reply;
 }
 
 export default function AIMentorChat() {

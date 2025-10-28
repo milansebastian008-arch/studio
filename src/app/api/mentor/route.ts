@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { getMentorResponse } from '@/ai/flows/mentor-server';
 
