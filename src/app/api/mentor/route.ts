@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const reply = await getMentorResponse(history, userMessage, userName);
     return NextResponse.json({ reply });
   } catch (error: any) {
-    console.error('API Error in /api/mentor:', error);
+    console.error('🔥 API Error in /api/mentor:', error);
     return NextResponse.json({ error: error.message || 'An internal server error occurred' }, { status: 500 });
   }
 }

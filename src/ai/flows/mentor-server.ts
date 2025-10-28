@@ -21,49 +21,41 @@ const systemPrompts = {
     CONCLUDED: `You are an AI mentor named 'M'. The user is thanking you and likely ending the conversation. Provide a brief, warm, and encouraging closing statement. Wish them the best on their journey to financial success.`,
 };
 
-const ConversationStage = z.enum([
-  'GREETING',
-  'ASK_GOALS',
-  'PROVIDE_ADVICE',
-  'CONCLUDED',
-]);
-
-function determineNextStage(currentStage: z.infer<typeof ConversationStage>, userMessage: string): z.infer<typeof ConversationStage> {
-    if (currentStage === 'GREETING') {
-        return 'PROVIDE_ADVICE';
+function determineSystemPrompt(history: ChatHistory, userMessage: string): string {
+    if (history.length < 2) { // Initial interaction (greeting + first user message)
+        return systemPrompts.GREETING;
     }
     if (userMessage.toLowerCase().includes('thank you') || userMessage.toLowerCase().includes('thanks')) {
-        return 'CONCLUDED';
+        return systemPrompts.CONCLUDED;
     }
-    return 'PROVIDE_ADVICE';
+    return systemPrompts.PROVIDE_ADVICE;
 }
 
 
 export async function getMentorResponse(history: ChatHistory, userMessage: string, userName: string) {
-    // The last message from the model is the one we are responding to.
-    const lastModelMessage = history.filter(h => h.role === 'model').pop();
-    
-    // Determine current stage based on some simple logic.
-    // This is a simplification. A real app might store stage in the state.
-    let currentStage: z.infer<typeof ConversationStage> = 'GREETING';
-    if(history.length > 2) { // more than initial greeting and first response
-      currentStage = 'PROVIDE_ADVICE';
-    }
+    try {
+        const systemPrompt = determineSystemPrompt(history, userMessage);
 
-    const nextStage = determineNextStage(currentStage, userMessage);
-    const systemPrompt = systemPrompts[nextStage] || systemPrompts.PROVIDE_ADVICE;
+        const messages: Array<{role: string, content: Array<{text: string}>}> = history.map(entry => ({
+            role: entry.role,
+            content: [{ text: entry.content }],
+        }));
 
-    const historyForPrompt = history.map(entry => ({
-        role: entry.role,
-        content: [{ text: entry.content }],
-    }));
+        const llmResponse = await ai.generate({
+            model: 'gemini-1.5-flash-latest',
+            prompt: userMessage,
+            system: systemPrompt + ` Address the user as ${userName} when appropriate.`,
+            history: messages,
+        });
 
-    const llmResponse = await ai.generate({
-        model: 'gemini-1.5-flash-latest',
-        prompt: userMessage,
-        system: systemPrompt + ` Address the user as ${userName} when appropriate.`,
-        history: historyForPrompt,
-    });
+        if (!llmResponse.text) {
+             throw new Error('Empty response from Genkit.');
+        }
 
-    return llmResponse.text;
+        return llmResponse.text;
+    } catch (err: any) {
+        console.error('💥 getMentorResponse error:', err);
+        // Return a user-friendly error message, but the actual error is logged on the server.
+        return "I'm having trouble connecting right now. Please try again in a moment.";
+  }
 }
