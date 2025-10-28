@@ -55,12 +55,12 @@ User's Profile Data: ${JSON.stringify(userProfile)}
     // Stage-specific logic
     switch (stage) {
       case 'GREETING': {
-        return { 
+        return {
           messages: [
             "🚀 Welcome to Millionaire Mindset! Let’s unlock your path to success — tell me about yourself or your idea so we can build your first earning plan.",
             "To start, what are you passionate about? You can pick one or more.\n- Writing\n- Design\n- Marketing\n- Teaching\n- Coding\n- Video\n- Other"
-          ], 
-          nextStage: 'ONBOARDING_INTEREST' 
+          ],
+          nextStage: 'ONBOARDING_INTEREST'
         };
       }
 
@@ -74,9 +74,9 @@ User's Profile Data: ${JSON.stringify(userProfile)}
             }
         });
         if (!interestOutput) throw new Error("AI could not identify the interest.");
-        
+
         return {
-          messages: ["Awesome choice! That's a field with a ton of potential.", "Got it! Now, what's your main goal with this?\n- Earn income quickly\n- Learn a new skill deeply\n- Build a side project for freedom"],
+          messages: ["Awesome choice! That's a field with a ton of potential.", "Now, what's your main goal with this?\n- Earn income quickly\n- Learn a new skill deeply\n- Build a side project for freedom"],
           nextStage: 'ONBOARDING_GOAL',
           updatedProfile: { interest: interestOutput },
         };
@@ -92,7 +92,7 @@ User's Profile Data: ${JSON.stringify(userProfile)}
             }
         });
         if (!goalOutput) throw new Error("AI could not identify the goal.");
-        
+
         const incomePaths: Record<string, string> = {
             'Writing': 'Freelance writing using AI assistants.',
             'Design': 'Creating Print-on-Demand products with AI art.',
@@ -105,7 +105,7 @@ User's Profile Data: ${JSON.stringify(userProfile)}
 
         const primaryInterest = (userProfile.interest || 'Writing').split(',')[0].trim();
         const recommendedPath = incomePaths[primaryInterest] || incomePaths['Other'];
-        
+
         return {
           messages: [`Great goal! Based on your interest in ${primaryInterest}, I've found a path for you.`, `I recommend this to start: **${recommendedPath}**`, `This is a great starting point. Would you like me to create a 7-day action plan for this path?`],
           nextStage: 'PATH_SELECTION',
@@ -151,7 +151,7 @@ If they decline or suggest something else, respond with "No problem! What would 
              }
          }
       }
-      
+
       case 'PROGRESS_UPDATE': {
         const { output } = await ai.generate({
           model: 'googleai/gemini-pro',
@@ -190,7 +190,7 @@ If they are stuck, offer help or a motivational tip like "No worries, every expe
       }
 
       case 'COMPLETE': {
-         const { output } = await ai.generate({
+         const { output: message } = await ai.generate({
             model: 'googleai/gemini-pro',
             prompt: `${basePrompt}
 The user has completed their initial 7-day plan and is ready to monetize.
@@ -198,10 +198,10 @@ Their chosen path is '${userProfile.chosen_path}'.
 Give them a simple, actionable first step to start earning. For 'Freelance writing', suggest creating a Fiverr gig. For 'Print-on-Demand', suggest an Etsy store listing. For 'YouTube Shorts', suggest setting up their channel profile.
 End by asking if they're ready for that step.`,
           });
-          if (!output) throw new Error("AI did not generate a response.");
+          if (!message) throw new Error("AI did not generate a response.");
 
         return {
-          messages: [output],
+          messages: [message],
           nextStage: 'COMPLETE', // Stays in this stage for further monetization guidance
           updatedProfile: { monetization_status: true }
         };

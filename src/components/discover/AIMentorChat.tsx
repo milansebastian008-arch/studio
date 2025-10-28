@@ -56,7 +56,8 @@ export function AIMentorChat() {
         const initialFormData = new FormData();
         initialFormData.append('userId', user.uid);
         initialFormData.append('currentStage', 'GREETING');
-        initialFormData.append('userMessage', 'Hi, I just signed up and I am ready to start!');
+        // The userMessage is not needed for the GREETING stage, but we send something to trigger the flow
+        initialFormData.append('userMessage', 'Initial greeting');
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
@@ -73,7 +74,7 @@ export function AIMentorChat() {
       setMessages((prev) => [...prev, ...newMessages]);
     }
   }, [state.messages]);
-  
+
   // Auto-scroll to the bottom of the chat
   useEffect(() => {
       if (scrollAreaRef.current) {
@@ -98,7 +99,7 @@ export function AIMentorChat() {
       formRef.current?.reset();
     }
   };
-  
+
   if (isProfileLoading || !userProfile) {
       return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin h-8 w-8" /> <span className='ml-4'>Loading your mentor...</span></div>
   }
