@@ -13,8 +13,11 @@ import { getMentorResponse, type MentorFlowOutput, type MentorFlowInput } from '
 // Define the initial state for the chat
 const initialState: MentorFlowOutput = {
   nextStage: 'GREETING',
-  mentorResponse: '',
-  conversationHistory: [],
+  mentorResponse: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
+  conversationHistory: [{
+    role: 'model',
+    content: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?"
+  }],
 };
 
 export default function AIMentorChat() {
@@ -31,11 +34,11 @@ export default function AIMentorChat() {
   const [chatState, formAction, isFormPending] = useActionState<MentorFlowOutput, FormData>(
     async (previousState, formData) => {
       const userMessage = formData.get('userMessage') as string;
-      if (!userMessage && previousState.conversationHistory.length > 0) return previousState;
+      if (!userMessage) return previousState;
       
       const input: MentorFlowInput = {
         currentStage: previousState.nextStage,
-        userMessage: userMessage || '', // Send empty message on first run to get greeting
+        userMessage: userMessage,
         userName: user?.displayName || 'User',
         conversationHistory: previousState.conversationHistory,
       };
@@ -47,18 +50,6 @@ export default function AIMentorChat() {
     initialState
   );
   
-  // This effect will run once on mount to trigger the initial greeting from the AI.
-  useEffect(() => {
-    // Check if it's the very beginning of the conversation.
-    if (chatState.conversationHistory.length === 0 && !isFormPending) {
-      // Create a dummy FormData and call the action to get the initial greeting.
-      const initialFormData = new FormData();
-      formAction(initialFormData);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Depend on isFormPending to avoid re-triggering during a request.
-
-
   // Effect to scroll to the bottom of the chat on new messages
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -105,7 +96,7 @@ export default function AIMentorChat() {
             </div>
           ))}
 
-           {isFormPending && chatState.conversationHistory.some(m => m.role === 'user') && (
+           {isFormPending && (
              <div className="flex items-start gap-3">
               <Avatar>
                 <AvatarFallback>M</AvatarFallback>
@@ -127,9 +118,9 @@ export default function AIMentorChat() {
             name="userMessage"
             placeholder="Type your message..."
             autoComplete="off"
-            disabled={isFormPending || chatState.nextStage === 'CONCLUDED' || chatState.conversationHistory.length === 0}
+            disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}
           />
-          <Button type="submit" size="icon" disabled={isFormPending || chatState.nextStage === 'CONCLUDED' || chatState.conversationHistory.length === 0}>
+          <Button type="submit" size="icon" disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>

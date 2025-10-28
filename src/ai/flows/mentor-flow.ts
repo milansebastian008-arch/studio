@@ -65,15 +65,18 @@ const mentorFlow = ai.defineFlow(
   async (input) => {
     let nextStage: ConversationStage = input.currentStage;
     let systemPrompt = '';
+    
+    // The very first interaction is handled by the client, so the first time this
+    // flow is called, it will be with the user's first message.
+    if (input.currentStage === 'GREETING') {
+      nextStage = 'ASK_GOALS';
+    }
 
-    // Determine the system prompt based on the current stage
-    switch (input.currentStage) {
-      case 'GREETING':
-        systemPrompt = `You are an AI mentor for the "Millionaire Mindset" platform. Your name is 'M'. Start the conversation by warmly greeting the user, introducing yourself, and asking them what financial or personal growth goal is on their mind right now. Keep it brief, friendly, and engaging. If a user name is provided, use it.`;
-        nextStage = 'ASK_GOALS';
-        break;
+
+    // Determine the system prompt based on the next stage
+    switch (nextStage) {
       case 'ASK_GOALS':
-        systemPrompt = `You are an AI mentor. The user has just shared their goal. Your task is to analyze their message and provide simple, actionable advice based on the principles of the "Millionaire Mindset" (e.g., investing, side hustles, positive mindset, law of attraction). After giving advice, ask a follow-up question to keep the conversation going.`;
+        systemPrompt = `You are an AI mentor for the "Millionaire Mindset" platform. Your name is 'M'. The user has just sent their first message in response to your greeting. Your task is to analyze their message and provide simple, actionable advice based on the principles of the "Millionaire Mindset" (e.g., investing, side hustles, positive mindset, law of attraction). After giving advice, ask a follow-up question to keep the conversation going.`;
         nextStage = 'PROVIDE_ADVICE';
         break;
       case 'PROVIDE_ADVICE':
@@ -93,6 +96,11 @@ const mentorFlow = ai.defineFlow(
             mentorResponse: 'It was great talking to you. Best of luck!',
             conversationHistory: input.conversationHistory || [],
         };
+      default:
+        // Default case for GREETING or any other unhandled stage
+        systemPrompt = `You are an AI mentor for the "Millionaire Mindset" platform. Your name is 'M'. Your task is to analyze the user's message and provide simple, actionable advice. After giving advice, ask a follow-up question to keep the conversation going.`
+        nextStage = 'PROVIDE_ADVICE'
+        break;
     }
 
     const historyForPrompt = (input.conversationHistory || []).map(entry => ({
