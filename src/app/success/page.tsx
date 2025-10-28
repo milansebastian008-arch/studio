@@ -25,12 +25,12 @@ export default function SuccessPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button asChild size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-            <a href="/success_pathway_guide_2025-10-25.txt" download>
+            <a href="/Success_Pathway_Guide.pdf" download>
               Download Your Guide
             </a>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/">Back to Home</Link>
+            <Link href="/account">Go to My Dashboard</Link>
           </Button>
         </CardFooter>
       </Card>

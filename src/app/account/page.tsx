@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, Lock, IndianRupee, Users } from 'lucide-react';
+import { Copy, Lock, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -31,17 +31,21 @@ import { Label } from "@/components/ui/label";
 function ReferralCard({ referralCode }: { referralCode: string }) {
   const { toast } = useToast();
   
-  // Use a relative path for the referral link to avoid hydration errors with window.location.
-  const referralLink = `/signup?ref=${referralCode}`;
+  const [referralLink, setReferralLink] = useState('');
+
+  useEffect(() => {
+    // This ensures window.location.origin is only accessed on the client-side
+    setReferralLink(`${window.location.origin}/signup?ref=${referralCode}`);
+  }, [referralCode]);
 
   const handleCopy = () => {
-    // Construct the full link only on the client-side when the button is clicked.
-    const fullLink = `${window.location.origin}${referralLink}`;
-    navigator.clipboard.writeText(fullLink);
-    toast({
-      title: 'Copied!',
-      description: 'Referral link copied to clipboard.',
-    });
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+      toast({
+        title: 'Copied!',
+        description: 'Referral link copied to clipboard.',
+      });
+    }
   };
 
   return (
@@ -52,8 +56,8 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center space-x-2">
-          <Input value={referralLink} readOnly />
-          <Button variant="outline" size="icon" onClick={handleCopy}>
+          <Input value={referralLink || 'Generating link...'} readOnly />
+          <Button variant="outline" size="icon" onClick={handleCopy} disabled={!referralLink}>
             <Copy className="h-4 w-4" />
           </Button>
         </div>
@@ -75,7 +79,7 @@ function AIAssistantCard({ hasPaid }: { hasPaid: boolean }) {
             ? 'Get personalized advice and strategies to kickstart your journey.'
             : 'Purchase the guide to unlock your personal AI assistant.'}
         </p>
-        <Button asChild disabled={!hasPaid}>
+        <Button asChild disabled={!hasPaid} className={!hasPaid ? 'cursor-not-allowed' : ''}>
           <Link href={hasPaid ? '/discover' : '#'} aria-disabled={!hasPaid} tabIndex={hasPaid ? undefined : -1}>
             { !hasPaid && <Lock className="mr-2 h-4 w-4" /> }
             Launch Assistant
@@ -124,7 +128,7 @@ function WithdrawalDialog({ onWithdraw, totalCommission }: { onWithdraw: (detail
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button disabled={totalCommission <= 0}>
+          <Button disabled={totalCommission < 100}>
             <IndianRupee className="mr-2 h-4 w-4" /> Withdraw Earnings
           </Button>
         </DialogTrigger>
@@ -155,10 +159,11 @@ function WithdrawalDialog({ onWithdraw, totalCommission }: { onWithdraw: (detail
               <Input
                 id="amount"
                 type="number"
-                value={amount}
+                value={amount || ''}
                 onChange={(e) => setAmount(Number(e.target.value))}
                 className="col-span-3"
                 placeholder="100"
+                max={totalCommission}
               />
             </div>
           </div>
@@ -205,8 +210,9 @@ function ReferralDashboard({ referrals, onWithdraw }: { referrals: any[], onWith
       </CardContent>
       <CardContent>
         <h4 className="font-semibold mb-4">Referral History</h4>
+        <div className="relative h-64 overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className='sticky top-0 bg-card'>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Referred User ID</TableHead>
@@ -224,11 +230,12 @@ function ReferralDashboard({ referrals, onWithdraw }: { referrals: any[], onWith
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center">No referrals yet.</TableCell>
+                <TableCell colSpan={3} className="text-center">No referrals yet. Share your link to start!</TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -257,14 +264,14 @@ export default function AccountPage() {
     return collection(firestore, 'users', user.uid, 'transactions');
   }, [firestore, user]);
 
-  const referralsCollectionRef = useMemoFirebase(() => {
+  const referralsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'referrals'), where('referrerId', '==', user.uid));
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
   const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsCollectionRef);
-  const { data: referrals, isLoading: isReferralsLoading } = useCollection(referralsCollectionRef);
+  const { data: referrals, isLoading: isReferralsLoading } = useCollection(referralsQuery);
 
   const isLoading = isUserLoading || isUserDataLoading || isTransactionsLoading || isReferralsLoading;
   
@@ -272,8 +279,7 @@ export default function AccountPage() {
 
   const handleWithdraw = async (paymentDetails: string, amount: number) => {
     if (!user || !firestore) return;
-    const totalCommission = referrals ? referrals.reduce((acc, referral) => acc + (referral.commissionAmount || 0), 0) : 0;
-
+    
     try {
       const withdrawalRequestsRef = collection(firestore, 'withdrawalRequests');
       await addDoc(withdrawalRequestsRef, {

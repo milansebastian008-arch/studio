@@ -4,7 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { getMentorResponse } from '@/app/actions';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -36,6 +36,7 @@ export function AIMentorChat() {
   const { user } = useUser();
   const firestore = useFirestore();
   const formRef = useRef<HTMLFormElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -47,18 +48,19 @@ export function AIMentorChat() {
 
   const [state, formAction] = useFormState(getMentorResponse, initialState);
 
-  // Set initial greeting from AI
+  // This effect runs once when the component loads to initiate the conversation
   useEffect(() => {
-    if (userProfile && messages.length === 0 && state.messages.length === 0) {
-        const greetingMessage = {
-            id: 'initial-greeting',
-            role: 'assistant' as const,
-            text: `Hi ${userProfile.name}! I'm your AI Mentor. I'm here to help you turn your passions into income. Ready to start? Just say "yes"!`,
-        };
-        setMessages([greetingMessage]);
+    // Only trigger if we have a user profile and no messages have been sent yet
+    if (userProfile && messages.length === 0 && user) {
+        const initialFormData = new FormData();
+        initialFormData.append('userId', user.uid);
+        initialFormData.append('currentStage', 'GREETING');
+        initialFormData.append('userMessage', 'Hi!');
+        initialFormData.append('userProfile', JSON.stringify(userProfile));
+        formAction(initialFormData);
     }
-  }, [userProfile]);
-  
+  }, [userProfile, user]); // Depends on userProfile and user being loaded
+
   // Handle new messages from the form action
   useEffect(() => {
     if (state.messages && state.messages.length > 0) {
@@ -70,14 +72,26 @@ export function AIMentorChat() {
       setMessages((prev) => [...prev, ...newMessages]);
     }
   }, [state.messages]);
+  
+  // Auto-scroll to the bottom of the chat
+  useEffect(() => {
+      if (scrollAreaRef.current) {
+          const viewport = scrollAreaRef.current.querySelector('div');
+          if(viewport) {
+              viewport.scrollTop = viewport.scrollHeight;
+          }
+      }
+  }, [messages]);
 
   const handleFormSubmit = (formData: FormData) => {
     const userMessage = formData.get('userMessage') as string;
-    if (userMessage.trim()) {
+    if (userMessage.trim() && userProfile) {
       setMessages((prev) => [
         ...prev,
         { id: `user-${Date.now()}`, role: 'user', text: userMessage },
       ]);
+      // Append the latest user profile to the form data
+      formData.set('userProfile', JSON.stringify(userProfile));
       formAction(formData);
       setUserInput('');
       formRef.current?.reset();
@@ -85,7 +99,7 @@ export function AIMentorChat() {
   };
   
   if (isProfileLoading || !userProfile) {
-      return <div><Loader2 className="animate-spin" /> Loading your mentor...</div>
+      return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin h-8 w-8" /> <span className='ml-4'>Loading your mentor...</span></div>
   }
 
   return (
@@ -100,7 +114,7 @@ export function AIMentorChat() {
             </p>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] w-full pr-4">
+        <ScrollArea className="h-[400px] w-full pr-4" ref={scrollAreaRef}>
             <div className="space-y-4">
                 {messages.map((msg) => (
                 <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
@@ -123,6 +137,16 @@ export function AIMentorChat() {
                     )}
                 </div>
                 ))}
+                 {useFormStatus().pending && messages.length > 0 && (
+                    <div className="flex items-start gap-3">
+                         <Avatar className="h-8 w-8">
+                            <AvatarFallback><Sparkles /></AvatarFallback>
+                        </Avatar>
+                         <div className="rounded-lg p-3 max-w-[80%] bg-muted text-foreground">
+                            <Loader2 className='animate-spin h-5 w-5' />
+                         </div>
+                    </div>
+                 )}
             </div>
         </ScrollArea>
       </CardContent>
