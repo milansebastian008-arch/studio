@@ -1,57 +1,77 @@
 
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
-import { getMentorResponse } from '@/ai/actions';
-import { type MentorFlowOutput, type MentorFlowInput } from '@/ai/flows/mentor-flow';
 
-// Define the initial state for the chat
-const initialState: MentorFlowOutput = {
-  nextStage: 'GREETING',
-  mentorResponse: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
-  conversationHistory: [{
-    role: 'model',
-    content: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?"
-  }],
-};
+interface ChatEntry {
+  role: 'user' | 'model';
+  content: string;
+}
+
+async function fetchMentorResponse(history: ChatEntry[], userMessage: string, userName: string) {
+  const res = await fetch('/api/mentor', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ history, userMessage, userName }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`API request failed: ${res.status} ${res.statusText} - ${errorBody}`);
+  }
+
+  const data = await res.json();
+  return data.reply;
+}
 
 export default function AIMentorChat() {
   const { user } = useUser();
   const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isPending, setIsPending] = useState(false);
+  const [history, setHistory] = useState<ChatEntry[]>([
+    {
+      role: 'model',
+      content: "Hello! I'm M, your AI mentor. What financial or personal growth goal is on your mind?",
+    },
+  ]);
 
-  // This ensures client-only logic runs after the component has mounted.
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const [chatState, formAction, isFormPending] = useActionState<MentorFlowOutput, FormData>(
-    async (previousState, formData) => {
-      const userMessage = formData.get('userMessage') as string;
-      if (!userMessage) return previousState;
-      
-      const input: MentorFlowInput = {
-        currentStage: previousState.nextStage,
-        userMessage: userMessage,
-        userName: user?.displayName || 'User',
-        conversationHistory: previousState.conversationHistory,
-      };
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const userMessage = formData.get('userMessage') as string;
 
-      const newState = await getMentorResponse(input);
-      formRef.current?.reset();
-      return newState;
-    },
-    initialState
-  );
-  
-  // Effect to scroll to the bottom of the chat on new messages
+    if (!userMessage.trim()) {
+      return;
+    }
+
+    const newHistory: ChatEntry[] = [...history, { role: 'user', content: userMessage }];
+    setHistory(newHistory);
+    setIsPending(true);
+    formRef.current?.reset();
+
+    try {
+      const reply = await fetchMentorResponse(newHistory, userMessage, user?.displayName || 'User');
+      setHistory((prevHistory) => [...prevHistory, { role: 'model', content: reply }]);
+    } catch (error) {
+      console.error("Failed to get mentor response:", error);
+      setHistory((prevHistory) => [...prevHistory, { role: 'model', content: "I'm having trouble connecting right now. Please try again in a moment." }]);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
@@ -59,18 +79,16 @@ export default function AIMentorChat() {
         behavior: 'smooth',
       });
     }
-  }, [chatState.conversationHistory]);
+  }, [history]);
 
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
-          {chatState.conversationHistory.map((entry, index) => (
+          {history.map((entry, index) => (
             <div
               key={index}
-              className={`flex items-start gap-3 ${
-                entry.role === 'user' ? 'justify-end' : ''
-              }`}
+              className={`flex items-start gap-3 ${entry.role === 'user' ? 'justify-end' : ''}`}
             >
               {entry.role === 'model' && (
                 <Avatar>
@@ -79,49 +97,36 @@ export default function AIMentorChat() {
               )}
               <div
                 className={`rounded-lg p-3 max-w-md ${
-                  entry.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                  entry.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                 }`}
               >
-                <p className="text-sm">{entry.content}</p>
+                <p className="text-sm whitespace-pre-wrap">{entry.content}</p>
               </div>
-              {entry.role === 'user' && isClient && ( // Only render user avatar on the client
+              {entry.role === 'user' && isClient && (
                 <Avatar>
                   <AvatarImage src={user?.photoURL || undefined} />
-                  <AvatarFallback>
-                    {user?.displayName?.charAt(0) || 'U'}
-                  </AvatarFallback>
+                  <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
               )}
             </div>
           ))}
 
-           {isFormPending && (
-             <div className="flex items-start gap-3">
+          {isPending && (
+            <div className="flex items-start gap-3">
               <Avatar>
                 <AvatarFallback>M</AvatarFallback>
               </Avatar>
               <div className="bg-muted rounded-lg p-3 max-w-xs">
-                <p className='text-sm animate-pulse'>M is typing...</p>
+                <p className="text-sm animate-pulse">M is typing...</p>
               </div>
             </div>
-           )}
+          )}
         </div>
       </ScrollArea>
       <div className="p-4 border-t">
-        <form
-          ref={formRef}
-          action={formAction}
-          className="flex items-center gap-2"
-        >
-          <Input
-            name="userMessage"
-            placeholder="Type your message..."
-            autoComplete="off"
-            disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}
-          />
-          <Button type="submit" size="icon" disabled={isFormPending || chatState.nextStage === 'CONCLUDED'}>
+        <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
+          <Input name="userMessage" placeholder="Type your message..." autoComplete="off" disabled={isPending} />
+          <Button type="submit" size="icon" disabled={isPending}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
