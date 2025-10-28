@@ -35,6 +35,7 @@ function ReferralCard({ referralCode }: { referralCode: string }) {
 
   useEffect(() => {
     // This ensures window.location.origin is only accessed on the client-side
+    // after the initial render, preventing hydration mismatches.
     setReferralLink(`${window.location.origin}/signup?ref=${referralCode}`);
   }, [referralCode]);
 
