@@ -58,7 +58,7 @@ export function AIMentorChat() {
         const initialFormData = new FormData();
         initialFormData.append('userId', user.uid);
         initialFormData.append('currentStage', 'GREETING');
-        initialFormData.append('userMessage', 'Initial greeting');
+        initialFormData.append('userMessage', 'Initial greeting'); // Placeholder message
         initialFormData.append('userProfile', JSON.stringify(userProfile));
         formAction(initialFormData);
     }
@@ -81,7 +81,7 @@ export function AIMentorChat() {
         setMessages((prev) => [...prev, ...newMessages]);
       }
     }
-  }, [state.messages]);
+  }, [state.messages, state.currentStage]);
 
   // Auto-scroll to the bottom of the chat
   useEffect(() => {
@@ -147,7 +147,7 @@ export function AIMentorChat() {
                     )}
                 </div>
                 ))}
-                 {useFormStatus().pending && messages.length > 0 && (
+                 {useFormStatus().pending && (messages.length === 0 || messages[messages.length-1].role === 'user' ) && (
                     <div className="flex items-start gap-3">
                          <Avatar className="h-8 w-8">
                             <AvatarFallback><Sparkles /></AvatarFallback>
@@ -183,3 +183,5 @@ export function AIMentorChat() {
     </Card>
   );
 }
+
+    
