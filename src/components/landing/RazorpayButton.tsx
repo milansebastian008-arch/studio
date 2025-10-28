@@ -113,7 +113,7 @@ const RazorpayButton: React.FC = () => {
     }
 
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_eJmLrDXIqYRmzz',
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: '5000', 
       currency: 'INR',
       name: 'Millionaire Mindset',
@@ -125,7 +125,7 @@ const RazorpayButton: React.FC = () => {
         email: user.email || '',
       },
       theme: {
-        color: '#6F42C1',
+        color: '#B57EDC',
       },
     };
     
